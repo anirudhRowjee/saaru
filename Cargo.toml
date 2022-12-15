@@ -1,0 +1,12 @@
+[package]
+name = "custom-ssg"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+gray_matter = "0.2.4"
+minijinja = "0.27.0"
+pulldown-cmark = { version = "0.9.2", default-features = false, features = ["simd"] }
+serde = { version = "1.0.150", features = ["derive"]}

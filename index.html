@@ -1,0 +1,243 @@
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/monokai-sublime.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/highlight.min.js"></script>
+    <style>
+     .container {
+         padding: 1em;
+         margin: 1em;
+     }
+     .frontmatter {
+         border: 1px dashed black;
+         padding: 0.5em;
+     }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <div class="frontmatter">
+            <h2> what can this blog do? </h2>
+            <h5> just a small feature demonstration of the capabilites of this blog </h5>
+            <p>
+                Tags: 
+                    look,
+                
+                    ma,
+                
+                    i,
+                
+                    can,
+                
+                    use,
+                
+                    tags,
+                
+            </p>
+        </div>
+        <div class="post">
+            <hr />
+<p>title: what can this blog do?
+description: just a small feature demonstration of the capabilites of this blog
+wip: true
+tags:</p>
+<ul>
+<li>look</li>
+<li>ma</li>
+<li>i</li>
+<li>can</li>
+<li>use</li>
+<li>tags</li>
+</ul>
+<hr />
+<h1>Markdown Test Blog Post</h1>
+<p>This is a test markdown file.</p>
+<p>It <em>should</em> <em>parse</em> <strong>soon</strong>.</p>
+<pre><code class="language-python">print(&quot;Hello, world!&quot;)
+</code></pre>
+<h1>An h1 header</h1>
+<p>Paragraphs are separated by a blank line.</p>
+<p>2nd paragraph. <em>Italic</em>, <strong>bold</strong>, and <code>monospace</code>. Itemized lists
+look like:</p>
+<ul>
+<li>this one</li>
+<li>that one</li>
+<li>the other one</li>
+</ul>
+<p>Note that — not considering the asterisk — the actual text
+content starts at 4-columns in.</p>
+<blockquote>
+<p>Block quotes are
+written like so.</p>
+<p>They can span multiple paragraphs,
+if you like.</p>
+</blockquote>
+<p>Use 3 dashes for an em-dash. Use 2 dashes for ranges (ex., “it’s all
+in chapters 12–14”). Three dots … will be converted to an ellipsis.
+Unicode is supported. ☺</p>
+<h2>An h2 header</h2>
+<p>Here’s a numbered list:</p>
+<ol>
+<li>first item</li>
+<li>second item</li>
+<li>third item</li>
+</ol>
+<p>Note again how the actual text starts at 4 columns in (4 characters
+from the left side). Here’s a code sample:</p>
+<pre><code># Let me re-iterate ...
+for i in 1 .. 10 { do-something(i) }
+</code></pre>
+<p>As you probably guessed, indented 4 spaces. By the way, instead of
+indenting the block, you can use delimited blocks, if you like:</p>
+<pre><code>define foobar() {
+    print &quot;Welcome to flavor country!&quot;;
+}
+</code></pre>
+<p>NOW FOR SYNTAX HIGHLIGHTING!</p>
+<pre><code class="language-python">import time
+# Quick, count to ten!
+for i in range(10):
+    # (but not *too* quick)
+    time.sleep(0.5)
+    print(i)
+</code></pre>
+<p>some more python highlighting</p>
+<pre><code class="language-py:index.py">@requires_authorization
+def somefunc(param1='', param2=0):
+    r'''A docstring'''
+    if param1 &gt; param2: # interesting
+        print 'Gre\'ater'
+    return (param2 - param1 + 1 + 0b10l) or None
+
+class SomeClass:
+    pass
+
+&gt;&gt;&gt; message = '''interpreter
+... prompt'''
+</code></pre>
+<p>Here is some text which is large</p>
+<pre><code class="language-js">module.exports = {
+  dest: 'docs',
+  title: 'Hello VuePress World',
+  description: 'VuePress install config',
+  head: [
+    ['link', { rel: 'icon', href: `/logo.png` }],
+    ['link', { rel: 'manifest', href: '/manifest.json' }],
+    ['meta', { name: 'theme-color', content: '#3eaf7c' }],
+    ['meta', { name: 'apple-mobile-web-app-capable', content: 'yes' }],
+    ['meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'black' }],
+    ['link', { rel: 'apple-touch-icon', href: `/icons/apple-touch-icon-152x152.png` }],
+    ['link', { rel: 'mask-icon', href: '/icons/safari-pinned-tab.svg', color: '#3eaf7c' }],
+    ['meta', { name: 'msapplication-TileImage', content: '/icons/msapplication-icon-144x144.png' }],
+    ['meta', { name: 'msapplication-TileColor', content: '#000000' }]
+  ],
+  serviceWorker: true,
+  ga: 'UA-109510157-1',
+</code></pre>
+<h3>An h3 header</h3>
+<p>Now a nested list:</p>
+<ol>
+<li>
+<p>First, get these ingredients:</p>
+<ul>
+<li>carrots</li>
+<li>celery</li>
+<li>lentils</li>
+</ul>
+</li>
+<li>
+<p>Boil some water.</p>
+</li>
+<li>
+<p>Dump everything in the pot and follow
+this algorithm:</p>
+<pre><code>find wooden spoon
+uncover pot
+stir
+cover pot
+balance wooden spoon precariously on pot handle
+wait 10 minutes
+goto first step (or shut off burner when done)
+</code></pre>
+<p>Do not bump wooden spoon or it will fall.</p>
+</li>
+</ol>
+<p>Notice again how text always lines up on 4-space indents (including
+that last line which continues item 3 above).</p>
+<p>Here’s a link to <a href="http://foo.bar">a website</a>, to a <a href="local-doc.html">local
+doc</a>, and to a <a href="#an-h2-header">section heading in the current
+doc</a></p>
+<p>What about footnotes?<sup class="footnote-reference"><a href="#1">1</a></sup></p>
+<p>Tables can look like this:</p>
+<table><thead><tr><th>Name</th><th>Size</th><th>Material</th><th>Color</th></tr></thead><tbody>
+<tr><td>All Business</td><td>9</td><td>leather</td><td>brown</td></tr>
+<tr><td>Roundabout</td><td>10</td><td>hemp canvas</td><td>natural</td></tr>
+<tr><td>Cinderella</td><td>11</td><td>glass</td><td>transparent</td></tr>
+</tbody></table>
+<p>Table: Shoes sizes, materials, and colors.</p>
+<p>A horizontal rule follows.</p>
+<hr />
+<p>And images can be specified like so:</p>
+<p><img src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.XBuTOZYvrMgYELZ9HzJNZQHaEK%26pid%3DApi&amp;f=1" alt="example image “this is nice”" title="An exemplary image" /></p>
+<p>Inline math equation: $\omega = d\phi / dt$. Display
+math should get its own line like so:</p>
+<p>$$I = \int \rho R^{2} dV$$</p>
+<p>And note that you can backslash-escape any punctuation characters
+which you wish to be displayed literally, ex.: `foo`, *bar*, etc.</p>
+<p>What if I want to embed a video?</p>
+<p>Nice, isn’t it?</p>
+<p>Here’s to some good writing! :champagne: I’ll see y’all around.</p>
+<p>==Adios!==</p>
+<div class='adm adm_info'>
+    <p class="title"> **ℹ️  INFO** This is a  info admonition </p>
+    <div class="body">
+    here is where I'll show you what you need to know.
+<pre><code>I can even add a code block in here!
+
+```rust
+println!(&quot;This is nice.&quot;);
+```
+&lt;/div&gt;
+</code></pre>
+</div>
+<div class='adm adm_warning'>
+    <p class="title"> **⚠️  WARNING** This is a  warning admonition </p>
+    <div class="body">
+    nice, **this** is nice
+    </div>
+</div>
+<div class='adm adm_note'>
+    <p class="title">**✍️  NOTE** This is a  note admonition </p>
+    <div class="body">
+    Here is where i'll tell you to take note of something.
+    </div>
+</div>
+<div class='adm adm_remember'>
+    <p class="title"> **🧠 REMEMBER** This is for you to remember something.</p>
+    <div class="body">
+    nice, **this** is nice
+    </div>
+</div>
+<div class='adm adm_bug'>
+    <p class="title"> **🐞 BUG** Here's a bug! </p>
+    <div class="body">
+    The issue's on line 10 of this code.
+<pre><code>```c
+#include &lt;stdio.h&gt;
+int main() {
+    printf(&quot;hello, world!\n&quot;);
+}
+```
+</code></pre>
+</div>
+<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
+<p>footnotes are fun!</p>
+</div>
+
+        </div>
+    </main>
+    <script>hljs.highlightAll();</script>
+</body>
