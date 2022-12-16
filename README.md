@@ -11,8 +11,13 @@ SAARU -> StAtic Almanac Renderer and Unifier
 ## Feature map
 - [x] Render a single markdown file to HTML
 - [x] Render a single markdown file to HTML with a Jinja Template
-- [ ] URGENT: Remove frontmatter from being rendered in the HTML
+
+- [x] URGENT: Remove frontmatter from being rendered in the HTML
+
 - [ ] Make templates readable from a single directory
+  - [ ] Make template readable from frontmatter
+  - [ ] Solve for nested templates
+
 - [ ] Run Pre-flight checks (check if templates dir exists, check if source dir exists, etc)
 - [ ] Render a directory structure of Markdown and Jinja to a directory structure of HTML
 - [ ] External CSS / Custom CSS injection
@@ -23,6 +28,10 @@ SAARU -> StAtic Almanac Renderer and Unifier
 - [ ] Web server + Live reload?
 - [ ] tree-shaken rendering, only re-render what's changed?
     - [ ] Merkle Tree based hash checks?
+
+### Rearchitecting - wipe
+How will I make the codebase work with all these features?
+
 
 
 
