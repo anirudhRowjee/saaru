@@ -37,6 +37,40 @@ struct FrontMatter {
     wip: bool,
 }
 
+fn remove_frontmatter(markdown_file_content: &str) -> String {
+    // This is a destructive write, we don't expect parallel ownership
+    // of this anywhere
+
+    let mut encounter_count = 0;
+    let mut removal_complete = false;
+
+    let in_frontmatter_block = markdown_file_content
+        .to_string()
+        .split("\n")
+        .map(|segment| {
+            if !removal_complete {
+                if segment == "---" {
+                    encounter_count += 1
+                }
+                if encounter_count % 2 == 0 {
+                    removal_complete = true;
+                }
+                ""
+            } else {
+                segment
+            }
+        })
+        .fold(String::new(), |mut a, b| -> String {
+            // don't push a newline in these cases
+            if a != "" && b != "" {
+                a.push_str("\n");
+            }
+            a.push_str(&b.to_owned());
+            a
+        });
+    in_frontmatter_block
+}
+
 fn main() {
     // Initialize The Jinja Renderer
     let mut env = Environment::new();
@@ -45,7 +79,7 @@ fn main() {
     let new_template = env.get_template("Hello").unwrap();
 
     // Initialize the frontmatter parser
-    let mut matter: Matter<YAML> = Matter::new();
+    let matter: Matter<YAML> = Matter::new();
 
     // Initialize the markdown parser
     let mut options = Options::empty();
@@ -55,17 +89,21 @@ fn main() {
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_TASKLISTS);
 
+    let mut markdown_file_content = include_str!("./test_content.md");
+
     // Parse the frontmatter
     let parsed_frontmatter: FrontMatter = matter
-        .parse(include_str!("./test_content.md"))
+        .parse(markdown_file_content)
         .data
         .unwrap()
         .deserialize()
         .unwrap();
+
     println!("Parsed Frontmatter: {:?}", parsed_frontmatter);
 
-    // Parse the markdown content in itself
-    let markdown_file_content = include_str!("./test_content.md");
+    // TODO remove the frontmatter once it's been parsed
+    let mut cleaned_markdown = remove_frontmatter(markdown_file_content);
+
     let parser = Parser::new_ext(markdown_file_content, options);
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
@@ -81,11 +119,38 @@ fn main() {
             postcontent => html_output
         ))
         .unwrap();
-    let write_html = rendered_final_html.clone();
 
+    // Copy just for fun
+    let write_html = rendered_final_html.clone();
     // Write the HTML rendered to a file
     fs::write("./index.html", write_html).expect("Could not write!");
     println!("Successfully written to a file!");
+}
 
-    println!("Hello, world!");
+#[cfg(test)]
+mod tests {
+    use crate::remove_frontmatter;
+
+    #[test]
+    fn test_frontmatter_cleaner() {
+        let non_cleaned_string: &str = "---\nthis should not be there\n---\nthis is okay";
+        let cleaned_string: &str = "this is okay";
+
+        assert_eq!(
+            cleaned_string.to_owned(),
+            remove_frontmatter(non_cleaned_string)
+        )
+    }
+
+    #[test]
+    fn test_frontmatter_cleaner_multiple_segment() {
+        let non_cleaned_string: &str =
+            "---\nthis should not be there\n---\nthis is okay\n---\nthis should make it in";
+        let cleaned_string: &str = "this is okay\n---\nthis should make it in";
+
+        assert_eq!(
+            cleaned_string.to_owned(),
+            remove_frontmatter(non_cleaned_string)
+        )
+    }
 }
