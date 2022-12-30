@@ -15,6 +15,9 @@ SAARU -> StAtic Almanac Renderer and Unifier
 - [x] URGENT: Remove frontmatter from being rendered in the HTML
 
 - [ ] Make templates readable from a single directory
+  - [ ] URGENT: This is probably a good time to add
+        - [ ] Reference folder structure
+        - [ ] Command Line Arguments (to pass in path to reference folder structure)
   - [ ] Make template readable from frontmatter
   - [ ] Solve for nested templates
 
