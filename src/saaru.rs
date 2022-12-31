@@ -2,6 +2,7 @@ use gray_matter::{engine::YAML, Matter};
 use minijinja::{context, Environment, Source};
 use pulldown_cmark::{html, Options, Parser};
 use serde::{Deserialize, Serialize};
+use walkdir::WalkDir;
 
 use std::fs;
 use std::path::PathBuf;
@@ -18,7 +19,6 @@ pub struct SaaruArguments {
 }
 
 impl SaaruArguments {
-    // TODO Test this
     pub fn new(base_dir: String) -> Self {
         let root_path = PathBuf::from(&base_dir);
         let mut template_path = PathBuf::from(&base_dir);
@@ -60,9 +60,19 @@ pub struct SaaruInstance<'a> {
     arguments: SaaruArguments,
 }
 
+const LOGO: &str = r"
+   ____
+  / __/__ ____ _______ __
+ _\ \/ _ `/ _ `/ __/ // /
+/___/\_,_/\_,_/_/  \_,_/
+
+A Static Site Generator for Fun and Profit
+";
+
 impl SaaruInstance<'_> {
     pub fn new(args: SaaruArguments) -> Self {
         // Prepare the Markdown Rendering Options
+        println!("{}", LOGO);
         let mut options = Options::empty();
         options.insert(Options::ENABLE_STRIKETHROUGH);
         options.insert(Options::ENABLE_FOOTNOTES);
@@ -85,7 +95,6 @@ impl SaaruInstance<'_> {
             .set_source(Source::from_path(&self.arguments.template_dir));
     }
 
-    // Basic Implementation - Take in a file, render the HTML
     pub fn render_file(&mut self, filename: &str) -> String {
         let markdown_file_content = fs::read_to_string(filename).unwrap();
 
@@ -125,13 +134,7 @@ impl SaaruInstance<'_> {
         rendered_final_html
     }
 
-    pub fn write_html_to_file(self, output_filename: &str, input_html: String) {
-        // Write the HTML rendered to a file
-        match fs::create_dir(&self.arguments.build_dir) {
-            Ok(_) => println!("Build directory created successfully"),
-            Err(e) => println!("Small err {}", e),
-        };
-
+    pub fn write_html_to_file(&self, output_filename: PathBuf, input_html: String) {
         let mut output_path = self.arguments.build_dir.clone();
         output_path.push(output_filename);
         // dbg!(&output_path);
@@ -144,7 +147,55 @@ impl SaaruInstance<'_> {
     }
 
     pub fn render_dir(&mut self) {
+        // Write the HTML rendered to a file
+        match fs::create_dir(&self.arguments.build_dir) {
+            Ok(_) => println!("Build Directory Created Successfully"),
+            Err(_) => println!("Build Directory Already Exists!"),
+        };
+
         // Run the entire render operation in a directory structure
+        // Walk the source directory
+        for dir in WalkDir::new(&self.arguments.source_dir) {
+            let entry = dir.unwrap();
+
+            let metadata = fs::metadata(entry.path()).unwrap();
+            if metadata.is_dir() {
+                continue;
+            }
+
+            let entry_path = entry.path();
+
+            // Make the write path
+            let mut write_path = entry_path.to_path_buf();
+            // println!("Write path before prefix strip -> {:?}", &write_path);
+
+            write_path = write_path
+                .strip_prefix(&self.arguments.source_dir)
+                .unwrap()
+                .to_path_buf();
+
+            // println!(
+            //     "Write Path before prepending the base directory -> {:?}",
+            //     write_path
+            // );
+
+            write_path.set_extension("html");
+
+            // Append the write path into the base directory
+            let final_write_path = self.arguments.build_dir.join(&write_path);
+            // println!(
+            //     "Processing {:?} and writing to {:?}",
+            //     entry_path, final_write_path
+            // );
+
+            // Create the final write path if it doesn't exist
+            // TODO See where is the best place to put this
+            let current_prefix = final_write_path.parent().unwrap();
+            fs::create_dir_all(current_prefix).unwrap();
+
+            let file_content = self.render_file(entry_path.to_str().unwrap());
+            self.write_html_to_file(final_write_path, file_content);
+        }
     }
 }
 
