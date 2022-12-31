@@ -39,6 +39,8 @@ SAARU -> StAtic Almanac Renderer and Unifier
 
 ### Rearchitecting - wipe
 ~~How will I make the codebase work with all these features?~~
+
+
 I DID IT!
 
 
