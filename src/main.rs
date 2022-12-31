@@ -19,6 +19,6 @@ fn main() {
     instance.set_template_environment();
 
     let file_content =
-        instance.render_file("/home/anirudh/projects/custom-ssg/src/test_content.md");
+        instance.render_file("/home/anirudh/projects/custom-ssg/example_source/src/index.md");
     instance.write_html_to_file("output.html", file_content)
 }

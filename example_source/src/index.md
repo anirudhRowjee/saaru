@@ -2,6 +2,7 @@
 title: what can this blog do?
 description: just a small feature demonstration of the capabilites of this blog
 wip: true
+template: hello2.jinja
 tags:
   - look
   - ma

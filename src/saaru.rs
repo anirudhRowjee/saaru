@@ -3,7 +3,6 @@ use minijinja::{context, Environment, Source};
 use pulldown_cmark::{html, Options, Parser};
 use serde::{Deserialize, Serialize};
 
-use std::borrow::BorrowMut;
 use std::fs;
 use std::path::PathBuf;
 
@@ -48,6 +47,8 @@ struct FrontMatter {
     description: String,
     tags: Vec<String>,
     wip: bool,
+    // This is the optional template string
+    template: Option<String>,
 }
 
 // Runtime necessities of the Saaru application
@@ -69,9 +70,6 @@ impl SaaruInstance<'_> {
         options.insert(Options::ENABLE_TABLES);
         options.insert(Options::ENABLE_TASKLISTS);
 
-        // Set the source of the environment to be the template directory
-        dbg!(&args);
-
         SaaruInstance {
             template_env: Environment::new(),
             frontmatter_parser: Matter::new(),
@@ -85,15 +83,11 @@ impl SaaruInstance<'_> {
         self.template_env = Environment::new();
         self.template_env
             .set_source(Source::from_path(&self.arguments.template_dir));
-        // dbg!(&self.arguments.template_dir);
-        // dbg!(&self.template_env);
     }
 
     // Basic Implementation - Take in a file, render the HTML
     pub fn render_file(&mut self, filename: &str) -> String {
-        // TODO Remove how you make this file
         let markdown_file_content = fs::read_to_string(filename).unwrap();
-        let new_template = self.template_env.get_template("hello.jinja").unwrap();
 
         // Parse the frontmatter
         let parsed_frontmatter: FrontMatter = self
@@ -104,18 +98,21 @@ impl SaaruInstance<'_> {
             .deserialize()
             .unwrap();
 
-        // println!("Parsed Frontmatter: {:?}", parsed_frontmatter);
-
-        // TODO remove the frontmatter once it's been parsed
         let cleaned_markdown = remove_frontmatter(&markdown_file_content);
 
         let parser = Parser::new_ext(&cleaned_markdown, self.markdown_options);
         let mut html_output = String::new();
         html::push_html(&mut html_output, parser);
-        // println!("Parsed HTML => {:?}", html_output);
 
         // Render the template
-        let rendered_final_html = new_template
+        let rendered_template = match &parsed_frontmatter.template {
+            Some(template_name) => self.template_env.get_template(&template_name).unwrap(),
+            None => {
+                panic!("Could not find template")
+            }
+        };
+
+        let rendered_final_html = rendered_template
             .render(context!(
                 name => "Anirudh",
                 users => vec!["a", "b", "c"],
@@ -125,23 +122,29 @@ impl SaaruInstance<'_> {
             .unwrap();
 
         // Copy just for fun
-        let write_html = rendered_final_html.clone();
-        write_html
+        rendered_final_html
     }
 
     pub fn write_html_to_file(self, output_filename: &str, input_html: String) {
         // Write the HTML rendered to a file
-        fs::create_dir(&self.arguments.build_dir).unwrap();
+        match fs::create_dir(&self.arguments.build_dir) {
+            Ok(_) => println!("Build directory created successfully"),
+            Err(e) => println!("Small err {}", e),
+        };
 
         let mut output_path = self.arguments.build_dir.clone();
         output_path.push(output_filename);
-        dbg!(&output_path);
+        // dbg!(&output_path);
 
         fs::File::create(&output_path).unwrap();
-        dbg!(&output_path);
+        // dbg!(&output_path);
 
-        fs::write(output_path, input_html).expect("Could not write!");
-        println!("Successfully written to a file!");
+        fs::write(&output_path, input_html).expect("Could not write!");
+        println!("Successfully written to file => {:?}!", &output_path);
+    }
+
+    pub fn render_dir(&mut self) {
+        // Run the entire render operation in a directory structure
     }
 }
 
@@ -178,6 +181,7 @@ pub fn remove_frontmatter(markdown_file_content: &str) -> String {
         });
     in_frontmatter_block
 }
+
 #[cfg(test)]
 mod tests {
     use crate::saaru::remove_frontmatter;
