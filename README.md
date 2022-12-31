@@ -1,6 +1,14 @@
 # Saaru
-
 Saaru is now an SSG Written in Rust. It uses Jinja Templates to render, along with Markdown to maintain content.
+
+```
+   ____
+  / __/__ ____ _______ __
+ _\ \/ _ `/ _ `/ __/ // /
+/___/\_,_/\_,_/_/  \_,_/
+
+A Static Site Generator for Fun and Profit
+```
 
 ### Etymology
 Saaru means Rasam, which is a type of spicy, thin lentil soup, often eaten with rice. This project is called Saaru because I like Saaru very much.
@@ -11,18 +19,15 @@ SAARU -> StAtic Almanac Renderer and Unifier
 ## Feature map
 - [x] Render a single markdown file to HTML
 - [x] Render a single markdown file to HTML with a Jinja Template
-
 - [x] URGENT: Remove frontmatter from being rendered in the HTML
-
-- [ ] Make templates readable from a single directory
-  - [ ] URGENT: This is probably a good time to add
-        - [ ] Reference folder structure
-        - [ ] Command Line Arguments (to pass in path to reference folder structure)
-  - [ ] Make template readable from frontmatter
+- [x] Make templates readable from a single directory
+  - [x] URGENT: This is probably a good time to add
+        - [x] Reference folder structure
+        - [x] Command Line Arguments (to pass in path to reference folder structure)
+  - [x] Make template readable from frontmatter
   - [ ] Solve for nested templates
-
+- [x] Render a directory structure of Markdown and Jinja to a directory structure of HTML
 - [ ] Run Pre-flight checks (check if templates dir exists, check if source dir exists, etc)
-- [ ] Render a directory structure of Markdown and Jinja to a directory structure of HTML
 - [ ] External CSS / Custom CSS injection
 - [ ] Parallelized rendering (see HACK comments)
 - [ ] Think about [Deep Data Merge](https://www.11ty.dev/docs/data/)
@@ -33,7 +38,8 @@ SAARU -> StAtic Almanac Renderer and Unifier
     - [ ] Merkle Tree based hash checks?
 
 ### Rearchitecting - wipe
-How will I make the codebase work with all these features?
+~~How will I make the codebase work with all these features?~~
+I DID IT!
 
 
 
