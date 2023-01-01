@@ -4,8 +4,10 @@ use pulldown_cmark::{html, Options, Parser};
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
+use log::{debug, error, info, warn};
+use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 // This is the main implementation struct for Saaru
 // TODO Derive clap parsing for this
@@ -20,6 +22,7 @@ pub struct SaaruArguments {
 
 impl SaaruArguments {
     pub fn new(base_dir: String) -> Self {
+        println!("[LOG] Initializing Arguments");
         let root_path = PathBuf::from(&base_dir);
         let mut template_path = PathBuf::from(&base_dir);
         let mut static_path = PathBuf::from(&base_dir);
@@ -31,6 +34,8 @@ impl SaaruArguments {
         content_path.push("src");
         build_path.push("build");
 
+        println!("[LOG] Initalized Arguments from Base Path {:?}", root_path);
+
         SaaruArguments {
             base_dir: root_path,
             template_dir: template_path,
@@ -41,7 +46,7 @@ impl SaaruArguments {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 struct FrontMatter {
     title: String,
     description: String,
@@ -51,6 +56,14 @@ struct FrontMatter {
     template: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AugmentedFrontMatter {
+    frontmatter: FrontMatter,
+    source_path: String,
+    file_content: String,
+    write_path: String,
+}
+
 // Runtime necessities of the Saaru application
 pub struct SaaruInstance<'a> {
     pub template_env: Environment<'a>,
@@ -58,6 +71,11 @@ pub struct SaaruInstance<'a> {
     pub frontmatter_parser: Matter<YAML>,
     markdown_options: Options,
     arguments: SaaruArguments,
+
+    // Runtime Data
+    collection_map: HashMap<String, Vec<FrontMatter>>,
+    tag_map: HashMap<String, Vec<FrontMatter>>,
+    frontmatter_map: HashMap<String, AugmentedFrontMatter>,
 }
 
 const LOGO: &str = r"
@@ -70,9 +88,18 @@ A Static Site Generator for Fun and Profit
 ";
 
 impl SaaruInstance<'_> {
+    /*
+     * functions for Saaru
+     */
+
     pub fn new(args: SaaruArguments) -> Self {
-        // Prepare the Markdown Rendering Options
+        simple_logger::SimpleLogger::new().env().init().unwrap();
+
         println!("{}", LOGO);
+        log::info!("Printed Logo");
+
+        log::info!("Initialized Logger");
+
         let mut options = Options::empty();
         options.insert(Options::ENABLE_STRIKETHROUGH);
         options.insert(Options::ENABLE_FOOTNOTES);
@@ -80,11 +107,18 @@ impl SaaruInstance<'_> {
         options.insert(Options::ENABLE_TABLES);
         options.insert(Options::ENABLE_TASKLISTS);
 
+        log::info!("Initialized Markdown Options");
+
         SaaruInstance {
             template_env: Environment::new(),
             frontmatter_parser: Matter::new(),
             markdown_options: options,
             arguments: args,
+
+            // Data Merge
+            collection_map: HashMap::new(),
+            tag_map: HashMap::new(),
+            frontmatter_map: HashMap::new(),
         }
     }
 
@@ -93,9 +127,151 @@ impl SaaruInstance<'_> {
         self.template_env = Environment::new();
         self.template_env
             .set_source(Source::from_path(&self.arguments.template_dir));
+        log::info!("Initialized Template Environment");
     }
 
-    pub fn render_file(&mut self, filename: &str) -> String {
+    pub fn preprocess_file_data(&mut self, filename: &Path) {
+        let markdown_file_content = fs::read_to_string(filename).unwrap();
+        // Parse the frontmatter
+        let parsed_frontmatter: FrontMatter = self
+            .frontmatter_parser
+            .parse(&markdown_file_content)
+            .data
+            .unwrap()
+            .deserialize()
+            .unwrap();
+
+        let cleaned_markdown = remove_frontmatter(&markdown_file_content);
+        let filename_str = filename.clone().display().to_string();
+
+        let aug_fm_struct = AugmentedFrontMatter {
+            file_content: cleaned_markdown.clone(),
+            frontmatter: parsed_frontmatter.clone(),
+            source_path: filename_str.clone(),
+            write_path: self.get_write_path(filename).to_str().unwrap().to_string(),
+        };
+
+        self.frontmatter_map.insert(filename_str, aug_fm_struct);
+        // TODO Insert into tag and collection maps, respectively
+    }
+
+    pub fn render_all_files(&self) {
+        // Render the entire map
+        for (key, val) in &self.frontmatter_map {
+            // Key => Path
+            // Value => AugmentedFrontMatter
+            log::info!("Rendering file {:?} to Path {:?}", key, val.write_path);
+
+            let new_val = val.clone();
+            let html_content = self.render_file_from_frontmatter(new_val);
+            self.write_html_to_file(PathBuf::from(&val.write_path), html_content);
+        }
+    }
+
+    pub fn get_write_path(&self, entry_path: &Path) -> PathBuf {
+        // Generate the final write path ->
+        // Input: src/posts/a.md
+        // Output: build/posts/a.html
+
+        let mut write_path = entry_path.to_path_buf();
+
+        write_path = write_path
+            .strip_prefix(&self.arguments.source_dir)
+            .unwrap()
+            .to_path_buf();
+
+        write_path.set_extension("html");
+
+        // Append the write path into the base directory
+        let final_write_path = self.arguments.build_dir.join(&write_path);
+        final_write_path
+    }
+
+    pub fn render_file_from_frontmatter(
+        &self,
+        input_aug_frontmatter: AugmentedFrontMatter,
+    ) -> String {
+        let parser = Parser::new_ext(&input_aug_frontmatter.file_content, self.markdown_options);
+
+        let mut html_output = String::new();
+
+        html::push_html(&mut html_output, parser);
+
+        // Render the template
+        let rendered_template = match &input_aug_frontmatter.frontmatter.template {
+            Some(template_name) => self.template_env.get_template(&template_name).unwrap(),
+            None => {
+                panic!("Could not find template")
+            }
+        };
+
+        let rendered_final_html = rendered_template
+            .render(context!(
+                name => "Anirudh",
+                users => vec!["a", "b", "c"],
+                frontmatter => input_aug_frontmatter.frontmatter,
+                postcontent => html_output
+            ))
+            .unwrap();
+
+        // Copy just for fun
+        rendered_final_html
+    }
+
+    pub fn alternate_render_pipeline(&mut self) {
+        // Full pipeline for rendering again
+        // Stage 1: Preprocess all files, make all necessary directories
+        // Staege 2: Render everything from the preprocessed map
+
+        log::info!("[PREFLIGHT] Checking for Build Directory");
+        match fs::create_dir(&self.arguments.build_dir) {
+            Ok(_) => log::info!("Build Directory Created Successfully"),
+            Err(_) => log::warn!("Build Directory Already Exists!"),
+        };
+
+        log::info!("[LOG] Recursively Preprocessing All Files");
+        for dir in WalkDir::new(&self.arguments.source_dir) {
+            let entry = dir.unwrap();
+            let metadata = fs::metadata(entry.path()).unwrap();
+            // Skip if directory
+            if metadata.is_dir() {
+                continue;
+            }
+
+            log::info!("Processing File {:?}", entry);
+            let entry_path = entry.path();
+            let final_write_path = self.get_write_path(entry_path);
+            log::info!("Generated Write Path {:?}", final_write_path);
+
+            self.preprocess_file_data(entry_path);
+            log::info!("Finished Processing File {:?}", entry);
+        }
+
+        log::info!("Rendering Stage");
+        self.render_all_files();
+    }
+
+    pub fn write_html_to_file(&self, output_filename: PathBuf, input_html: String) {
+        // Create the file and folder if it doesn't exist, write it to disk
+
+        // Generate the output path from the build directory and the given output filename
+        let mut output_path = self.arguments.build_dir.clone();
+        output_path.push(output_filename);
+
+        // Create all the necessary directories that need to be created
+        let current_prefix = output_path.parent().unwrap();
+
+        fs::create_dir_all(current_prefix).unwrap();
+
+        // Create the file itself
+        fs::File::create(&output_path).unwrap();
+
+        // Write to the file
+        fs::write(&output_path, input_html).expect("Could not write!");
+        log::info!("SUCCESS: Wrote to {:?}", &output_path);
+    }
+
+    pub fn render_markdown_file_to_html(&mut self, filename: &str) -> String {
         let markdown_file_content = fs::read_to_string(filename).unwrap();
 
         // Parse the frontmatter
@@ -108,6 +284,18 @@ impl SaaruInstance<'_> {
             .unwrap();
 
         let cleaned_markdown = remove_frontmatter(&markdown_file_content);
+
+        let aug_fm_struct = AugmentedFrontMatter {
+            file_content: cleaned_markdown.clone(),
+            frontmatter: parsed_frontmatter.clone(),
+            source_path: filename.clone().to_string(),
+            write_path: filename.clone().to_string(),
+        };
+
+        self.frontmatter_map
+            .insert(filename.clone().to_string(), aug_fm_struct);
+
+        // Begin pipeline separation from here
 
         let parser = Parser::new_ext(&cleaned_markdown, self.markdown_options);
         let mut html_output = String::new();
@@ -134,27 +322,13 @@ impl SaaruInstance<'_> {
         rendered_final_html
     }
 
-    pub fn write_html_to_file(&self, output_filename: PathBuf, input_html: String) {
-        let mut output_path = self.arguments.build_dir.clone();
-        output_path.push(output_filename);
-        // dbg!(&output_path);
-
-        fs::File::create(&output_path).unwrap();
-        // dbg!(&output_path);
-
-        fs::write(&output_path, input_html).expect("Could not write!");
-        println!("Successfully written to file => {:?}!", &output_path);
-    }
-
-    pub fn render_dir(&mut self) {
+    pub fn recursively_render_from_directory(&mut self) {
         // Write the HTML rendered to a file
         match fs::create_dir(&self.arguments.build_dir) {
-            Ok(_) => println!("Build Directory Created Successfully"),
-            Err(_) => println!("Build Directory Already Exists!"),
+            Ok(_) => log::info!("Build Directory Created Successfully"),
+            Err(_) => log::warn!("Build Directory Already Exists!"),
         };
 
-        // Run the entire render operation in a directory structure
-        // Walk the source directory
         for dir in WalkDir::new(&self.arguments.source_dir) {
             let entry = dir.unwrap();
 
@@ -164,36 +338,11 @@ impl SaaruInstance<'_> {
             }
 
             let entry_path = entry.path();
+            log::info!("Processing {:?}", entry_path);
 
-            // Make the write path
-            let mut write_path = entry_path.to_path_buf();
-            // println!("Write path before prefix strip -> {:?}", &write_path);
+            let final_write_path = self.get_write_path(entry_path);
 
-            write_path = write_path
-                .strip_prefix(&self.arguments.source_dir)
-                .unwrap()
-                .to_path_buf();
-
-            // println!(
-            //     "Write Path before prepending the base directory -> {:?}",
-            //     write_path
-            // );
-
-            write_path.set_extension("html");
-
-            // Append the write path into the base directory
-            let final_write_path = self.arguments.build_dir.join(&write_path);
-            // println!(
-            //     "Processing {:?} and writing to {:?}",
-            //     entry_path, final_write_path
-            // );
-
-            // Create the final write path if it doesn't exist
-            // TODO See where is the best place to put this
-            let current_prefix = final_write_path.parent().unwrap();
-            fs::create_dir_all(current_prefix).unwrap();
-
-            let file_content = self.render_file(entry_path.to_str().unwrap());
+            let file_content = self.render_markdown_file_to_html(entry_path.to_str().unwrap());
             self.write_html_to_file(final_write_path, file_content);
         }
     }
@@ -265,6 +414,18 @@ mod tests {
         let non_cleaned_string: &str =
             "---\nthis should not be there\n---\nthis is okay\n---\nthis should make it in\n---";
         let cleaned_string: &str = "this is okay\n---\nthis should make it in\n---";
+
+        assert_eq!(
+            cleaned_string.to_owned(),
+            remove_frontmatter(non_cleaned_string)
+        )
+    }
+
+    #[test]
+    fn test_frontmatter_cleaner_does_not_harm_tables() {
+        let non_cleaned_string: &str =
+            "---\nthis should not be there\n---\nthis is okay\n---\nthis should make it in\n---\n | Header  | Another Header |\n | ------- | -------------- |\n | field 1 | value one      | ";
+        let cleaned_string: &str = "this is okay\n---\nthis should make it in\n---\n | Header  | Another Header |\n | ------- | -------------- |\n | field 1 | value one      | ";
 
         assert_eq!(
             cleaned_string.to_owned(),
