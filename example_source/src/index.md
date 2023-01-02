@@ -10,6 +10,7 @@ tags:
   - can
   - use
   - tags
+  - special_tag
 ---
 
 [Link to page 2](/index2)

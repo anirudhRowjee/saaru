@@ -33,10 +33,12 @@ SAARU -> StAtic Almanac Renderer and Unifier
 - [ ] External CSS / Custom CSS injection
 - [ ] Parallelized rendering (see HACK comments)
 
-- [ ] Think about [Deep Data Merge](https://www.11ty.dev/docs/data/)
+- [x] Think about [Deep Data Merge](https://www.11ty.dev/docs/data/)
 
   - [x] Think about single-tree-pass DDM Data Sourcing (implemented in the 2-pass method)
   - [x] Collect frontmatter data
+  - [x] Implement Deep Data Merge for Tags
+  - [x] Implement Deep Data Merge for Collections
 
 - [ ] Web server + Live reload?
 - [ ] tree-shaken rendering, only re-render what's changed?
@@ -103,55 +105,3 @@ In this architecture, there are two passes that go into rendering files - this i
    - Iterate through the entire hashmap, passing the collections available as a part of the context
    - Render the markdown present and write it to file
    - [ ] Now the entire set of templates has access to the data acquired in the merge.
-
-### Old Plans
-
-Bespoke is a proposed static site generator that uses Markdown for Content, Lisp for structuring, and HTML/CSS Combined with Templates for rendering.
-
-Input -> description.el
-
-```scheme
-(setq books-template
-    :title "Books"
-    :description "Here are all my books"
-    :description_md "./books_desc.md"
-)
-
-;; This is what my current blog's homepage would look like
-(setq home-template
-    :title "Home | Anirudh Rowjee"
-    :description_md "./books_desc.md"
-    :sublayout (
-        ;; Assume these are defined somewhere
-        header_template
-        cta_submenu_template
-        selected_posts_template
-        footer
-    )
-)
-
-(setq blog-template
-    :title "Blog | Anirudh Rowjee"
-    :description_md "./blog_desc.md"
-    :sublayout (
-        (header_template custom_param_1 custom_param_2)
-        searchbar
-        (content-grid 'posts)
-    )
-)
-
-
-(site
-    (site-metadata
-       (author-name "Anirudh Rowjee")
-       (domain-name "rowjee.com")
-    )
-    (content-map
-        (home 'home-template)
-        (blog 'blog-template)
-        (about 'about-template)
-        (projects 'projects-template)
-        (books 'books-template)
-    )
-)
-```

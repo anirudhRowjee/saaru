@@ -64,6 +64,23 @@ pub struct AugmentedFrontMatter {
     write_path: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ThinAugmentedFrontMatter {
+    frontmatter: FrontMatter,
+    source_path: String,
+    write_path: String,
+}
+
+impl From<AugmentedFrontMatter> for ThinAugmentedFrontMatter {
+    fn from(old: AugmentedFrontMatter) -> Self {
+        ThinAugmentedFrontMatter {
+            frontmatter: old.frontmatter.clone(),
+            source_path: old.source_path.clone(),
+            write_path: old.write_path.clone(),
+        }
+    }
+}
+
 // Runtime necessities of the Saaru application
 pub struct SaaruInstance<'a> {
     pub template_env: Environment<'a>,
@@ -75,7 +92,7 @@ pub struct SaaruInstance<'a> {
 
     // Runtime Data
     collection_map: HashMap<String, Vec<FrontMatter>>,
-    tag_map: HashMap<String, Vec<FrontMatter>>,
+    tag_map: HashMap<String, Vec<ThinAugmentedFrontMatter>>,
     frontmatter_map: HashMap<String, AugmentedFrontMatter>,
 }
 
@@ -196,7 +213,19 @@ impl SaaruInstance<'_> {
             write_path: self.get_write_path(filename).to_str().unwrap().to_string(),
         };
 
+        let tag_copy = aug_fm_struct.clone();
+        let collection_copy = aug_fm_struct.clone();
+
+        for tag in &tag_copy.frontmatter.tags {
+            self.tag_map
+                .entry(tag.to_string())
+                .and_modify(|list| list.push(ThinAugmentedFrontMatter::from(tag_copy.clone())))
+                .or_insert(vec![ThinAugmentedFrontMatter::from(tag_copy.clone())]);
+        }
+
         self.frontmatter_map.insert(filename_str, aug_fm_struct);
+
+        // Load the Tag Map
 
         // TODO Insert into tag and collection maps, respectively
     }
@@ -223,7 +252,8 @@ impl SaaruInstance<'_> {
                 name => "Anirudh",
                 users => vec!["a", "b", "c"],
                 frontmatter => input_aug_frontmatter.frontmatter,
-                postcontent => html_output
+                postcontent => html_output,
+                tags => &self.tag_map,
             ))
             .unwrap();
 
@@ -292,6 +322,9 @@ impl SaaruInstance<'_> {
             self.preprocess_file_data(entry_path);
             log::info!("Finished Processing File {:?}", entry);
         }
+
+        // Print out the tag map
+        println!("Tag Map -> {:?}", self.tag_map);
 
         log::info!("Rendering Stage");
         self.render_all_files();
