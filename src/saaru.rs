@@ -67,6 +67,7 @@ pub struct AugmentedFrontMatter {
 // Runtime necessities of the Saaru application
 pub struct SaaruInstance<'a> {
     pub template_env: Environment<'a>,
+
     // TODO Currently set to frontmatter YAML, see if you need to change this Via a config file later
     pub frontmatter_parser: Matter<YAML>,
     markdown_options: Options,
@@ -87,6 +88,40 @@ const LOGO: &str = r"
 A Static Site Generator for Fun and Profit
 ";
 
+pub fn remove_frontmatter(markdown_file_content: &str) -> String {
+    // This is a destructive write, we don't expect parallel ownership
+    // of this anywhere
+
+    let mut encounter_count = 0;
+    let mut removal_complete = false;
+
+    let in_frontmatter_block = markdown_file_content
+        .to_string()
+        .split("\n")
+        .map(|segment| {
+            if !removal_complete {
+                if segment == "---" {
+                    encounter_count += 1
+                }
+                if encounter_count % 2 == 0 {
+                    removal_complete = true;
+                }
+                ""
+            } else {
+                segment
+            }
+        })
+        .fold(String::new(), |mut a, b| -> String {
+            // don't push a newline in these cases
+            if a != "" && b != "" {
+                a.push_str("\n");
+            }
+            a.push_str(&b.to_owned());
+            a
+        });
+    in_frontmatter_block
+}
+
 impl SaaruInstance<'_> {
     /*
      * functions for Saaru
@@ -100,19 +135,10 @@ impl SaaruInstance<'_> {
 
         log::info!("Initialized Logger");
 
-        let mut options = Options::empty();
-        options.insert(Options::ENABLE_STRIKETHROUGH);
-        options.insert(Options::ENABLE_FOOTNOTES);
-        options.insert(Options::ENABLE_SMART_PUNCTUATION);
-        options.insert(Options::ENABLE_TABLES);
-        options.insert(Options::ENABLE_TASKLISTS);
-
-        log::info!("Initialized Markdown Options");
-
         SaaruInstance {
             template_env: Environment::new(),
             frontmatter_parser: Matter::new(),
-            markdown_options: options,
+            markdown_options: Options::all(),
             arguments: args,
 
             // Data Merge
@@ -128,6 +154,25 @@ impl SaaruInstance<'_> {
         self.template_env
             .set_source(Source::from_path(&self.arguments.template_dir));
         log::info!("Initialized Template Environment");
+    }
+
+    pub fn get_write_path(&self, entry_path: &Path) -> PathBuf {
+        // Generate the final write path ->
+        // Input: src/posts/a.md
+        // Output: build/posts/a.html
+
+        let mut write_path = entry_path.to_path_buf();
+
+        write_path = write_path
+            .strip_prefix(&self.arguments.source_dir)
+            .unwrap()
+            .to_path_buf();
+
+        write_path.set_extension("html");
+
+        // Append the write path into the base directory
+        let final_write_path = self.arguments.build_dir.join(&write_path);
+        final_write_path
     }
 
     pub fn preprocess_file_data(&mut self, filename: &Path) {
@@ -152,39 +197,8 @@ impl SaaruInstance<'_> {
         };
 
         self.frontmatter_map.insert(filename_str, aug_fm_struct);
+
         // TODO Insert into tag and collection maps, respectively
-    }
-
-    pub fn render_all_files(&self) {
-        // Render the entire map
-        for (key, val) in &self.frontmatter_map {
-            // Key => Path
-            // Value => AugmentedFrontMatter
-            log::info!("Rendering file {:?} to Path {:?}", key, val.write_path);
-
-            let new_val = val.clone();
-            let html_content = self.render_file_from_frontmatter(new_val);
-            self.write_html_to_file(PathBuf::from(&val.write_path), html_content);
-        }
-    }
-
-    pub fn get_write_path(&self, entry_path: &Path) -> PathBuf {
-        // Generate the final write path ->
-        // Input: src/posts/a.md
-        // Output: build/posts/a.html
-
-        let mut write_path = entry_path.to_path_buf();
-
-        write_path = write_path
-            .strip_prefix(&self.arguments.source_dir)
-            .unwrap()
-            .to_path_buf();
-
-        write_path.set_extension("html");
-
-        // Append the write path into the base directory
-        let final_write_path = self.arguments.build_dir.join(&write_path);
-        final_write_path
     }
 
     pub fn render_file_from_frontmatter(
@@ -192,7 +206,6 @@ impl SaaruInstance<'_> {
         input_aug_frontmatter: AugmentedFrontMatter,
     ) -> String {
         let parser = Parser::new_ext(&input_aug_frontmatter.file_content, self.markdown_options);
-
         let mut html_output = String::new();
 
         html::push_html(&mut html_output, parser);
@@ -216,6 +229,39 @@ impl SaaruInstance<'_> {
 
         // Copy just for fun
         rendered_final_html
+    }
+
+    pub fn write_html_to_file(&self, output_filename: PathBuf, input_html: String) {
+        // Create the file and folder if it doesn't exist, write it to disk
+
+        // Generate the output path from the build directory and the given output filename
+        let mut output_path = self.arguments.build_dir.clone();
+        output_path.push(output_filename);
+
+        // Create all the necessary directories that need to be created
+        let current_prefix = output_path.parent().unwrap();
+
+        fs::create_dir_all(current_prefix).unwrap();
+
+        // Create the file itself
+        fs::File::create(&output_path).unwrap();
+
+        // Write to the file
+        fs::write(&output_path, input_html).expect("Could not write!");
+        log::info!("SUCCESS: Wrote to {:?}", &output_path);
+    }
+
+    pub fn render_all_files(&self) {
+        // Render the entire map
+        for (key, val) in &self.frontmatter_map {
+            // Key => Path
+            // Value => AugmentedFrontMatter
+            log::info!("Rendering file {:?} to Path {:?}", key, val.write_path);
+
+            let new_val = val.clone();
+            let html_content = self.render_file_from_frontmatter(new_val);
+            self.write_html_to_file(PathBuf::from(&val.write_path), html_content);
+        }
     }
 
     pub fn alternate_render_pipeline(&mut self) {
@@ -250,136 +296,6 @@ impl SaaruInstance<'_> {
         log::info!("Rendering Stage");
         self.render_all_files();
     }
-
-    pub fn write_html_to_file(&self, output_filename: PathBuf, input_html: String) {
-        // Create the file and folder if it doesn't exist, write it to disk
-
-        // Generate the output path from the build directory and the given output filename
-        let mut output_path = self.arguments.build_dir.clone();
-        output_path.push(output_filename);
-
-        // Create all the necessary directories that need to be created
-        let current_prefix = output_path.parent().unwrap();
-
-        fs::create_dir_all(current_prefix).unwrap();
-
-        // Create the file itself
-        fs::File::create(&output_path).unwrap();
-
-        // Write to the file
-        fs::write(&output_path, input_html).expect("Could not write!");
-        log::info!("SUCCESS: Wrote to {:?}", &output_path);
-    }
-
-    pub fn render_markdown_file_to_html(&mut self, filename: &str) -> String {
-        let markdown_file_content = fs::read_to_string(filename).unwrap();
-
-        // Parse the frontmatter
-        let parsed_frontmatter: FrontMatter = self
-            .frontmatter_parser
-            .parse(&markdown_file_content)
-            .data
-            .unwrap()
-            .deserialize()
-            .unwrap();
-
-        let cleaned_markdown = remove_frontmatter(&markdown_file_content);
-
-        let aug_fm_struct = AugmentedFrontMatter {
-            file_content: cleaned_markdown.clone(),
-            frontmatter: parsed_frontmatter.clone(),
-            source_path: filename.clone().to_string(),
-            write_path: filename.clone().to_string(),
-        };
-
-        self.frontmatter_map
-            .insert(filename.clone().to_string(), aug_fm_struct);
-
-        // Begin pipeline separation from here
-
-        let parser = Parser::new_ext(&cleaned_markdown, self.markdown_options);
-        let mut html_output = String::new();
-        html::push_html(&mut html_output, parser);
-
-        // Render the template
-        let rendered_template = match &parsed_frontmatter.template {
-            Some(template_name) => self.template_env.get_template(&template_name).unwrap(),
-            None => {
-                panic!("Could not find template")
-            }
-        };
-
-        let rendered_final_html = rendered_template
-            .render(context!(
-                name => "Anirudh",
-                users => vec!["a", "b", "c"],
-                frontmatter => parsed_frontmatter,
-                postcontent => html_output
-            ))
-            .unwrap();
-
-        // Copy just for fun
-        rendered_final_html
-    }
-
-    pub fn recursively_render_from_directory(&mut self) {
-        // Write the HTML rendered to a file
-        match fs::create_dir(&self.arguments.build_dir) {
-            Ok(_) => log::info!("Build Directory Created Successfully"),
-            Err(_) => log::warn!("Build Directory Already Exists!"),
-        };
-
-        for dir in WalkDir::new(&self.arguments.source_dir) {
-            let entry = dir.unwrap();
-
-            let metadata = fs::metadata(entry.path()).unwrap();
-            if metadata.is_dir() {
-                continue;
-            }
-
-            let entry_path = entry.path();
-            log::info!("Processing {:?}", entry_path);
-
-            let final_write_path = self.get_write_path(entry_path);
-
-            let file_content = self.render_markdown_file_to_html(entry_path.to_str().unwrap());
-            self.write_html_to_file(final_write_path, file_content);
-        }
-    }
-}
-
-pub fn remove_frontmatter(markdown_file_content: &str) -> String {
-    // This is a destructive write, we don't expect parallel ownership
-    // of this anywhere
-
-    let mut encounter_count = 0;
-    let mut removal_complete = false;
-
-    let in_frontmatter_block = markdown_file_content
-        .to_string()
-        .split("\n")
-        .map(|segment| {
-            if !removal_complete {
-                if segment == "---" {
-                    encounter_count += 1
-                }
-                if encounter_count % 2 == 0 {
-                    removal_complete = true;
-                }
-                ""
-            } else {
-                segment
-            }
-        })
-        .fold(String::new(), |mut a, b| -> String {
-            // don't push a newline in these cases
-            if a != "" && b != "" {
-                a.push_str("\n");
-            }
-            a.push_str(&b.to_owned());
-            a
-        });
-    in_frontmatter_block
 }
 
 #[cfg(test)]

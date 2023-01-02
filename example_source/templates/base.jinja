@@ -1,0 +1,27 @@
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/monokai-sublime.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/highlight.min.js"></script>
+    <style>
+        .container {
+            padding: 1em;
+            margin: 1em;
+        }
+
+        .frontmatter {
+            border: 1px dashed black;
+            padding: 0.5em;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        {% block main_template_content %}
+        {% endblock %}
+    </main>
+    <script>hljs.highlightAll();</script>
+</body>

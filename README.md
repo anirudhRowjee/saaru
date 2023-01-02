@@ -27,14 +27,17 @@ SAARU -> StAtic Almanac Renderer and Unifier
 - [x] Make templates readable from a single directory
   - [x] URGENT: This is probably a good time to add - [x] Reference folder structure - [x] Command Line Arguments (to pass in path to reference folder structure)
   - [x] Make template readable from frontmatter
-  - [ ] Solve for nested templates
+  - [x] Solve for nested templates
 - [x] Render a directory structure of Markdown and Jinja to a directory structure of HTML
 - [ ] Run Pre-flight checks (check if templates dir exists, check if source dir exists, etc)
 - [ ] External CSS / Custom CSS injection
 - [ ] Parallelized rendering (see HACK comments)
+
 - [ ] Think about [Deep Data Merge](https://www.11ty.dev/docs/data/)
-  - [ ] Think about single-tree-pass DDM Data Sourcing
-  - [ ] Collect frontmatter data
+
+  - [x] Think about single-tree-pass DDM Data Sourcing (implemented in the 2-pass method)
+  - [x] Collect frontmatter data
+
 - [ ] Web server + Live reload?
 - [ ] tree-shaken rendering, only re-render what's changed?
   - [ ] Merkle Tree based hash checks?
@@ -92,7 +95,7 @@ In this architecture, there are two passes that go into rendering files - this i
    - Capture all the frontmatter in structs
    - Read all the Markdown Content and store it (but do not convert it to HTML) - this is so we don't need to read it again to save on I/O
    - Create all the indices/maps on the fly (collection_map, tag_map) at this point
-   - Capture structure - `HashMap<Path, InformationStruct>` where `InformationStruct` has the frontmatter, read content markdown (and possibly later have live reload based on file changes)
+   - Capture structure - `HashMap<Path, AugmentedFrontmatter>` where `AugmentedFrontmatter` has the frontmatter, read content markdown (and possibly later have live reload based on file changes)
 
 > By the end of the frontmatter pass, all collections and collection data must be satisfied, should any other template wish to read it
 
@@ -107,8 +110,7 @@ Bespoke is a proposed static site generator that uses Markdown for Content, Lisp
 
 Input -> description.el
 
-```lisp
-
+```scheme
 (setq books-template
     :title "Books"
     :description "Here are all my books"

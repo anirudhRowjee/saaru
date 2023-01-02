@@ -1,5 +1,5 @@
 ---
-title: what can this blog do?
+title: what can this blog do, now I know
 description: just a small feature demonstration of the capabilites of this blog
 wip: true
 template: hello2.jinja
@@ -12,16 +12,7 @@ tags:
   - tags
 ---
 
-# Markdown Test Blog Post
-
-This is a test markdown file.
-
-It *should* _parse_ **soon**.
-
-```python
-print("Hello, world!")
-```
-
+[Link to page 2](/index2)
 
 # An h1 header
 
@@ -51,14 +42,14 @@ Unicode is supported. ☺
 
 Here's a numbered list:
 
-1.  first item
-2.  second item
-3.  third item
+1. first item
+2. second item
+3. third item
 
 Note again how the actual text starts at 4 columns in (4 characters
 from the left side). Here's a code sample:
 
-```
+```python
 # Let me re-iterate ...
 for i in 1 .. 10 { do-something(i) }
 ```
@@ -102,7 +93,7 @@ class SomeClass:
 
 Here is some text which is large
 
-```js
+```javascript
 module.exports = {
   dest: 'docs',
   title: 'Hello VuePress World',
@@ -126,15 +117,15 @@ module.exports = {
 
 Now a nested list:
 
-1.  First, get these ingredients:
+1. First, get these ingredients:
 
     - carrots
     - celery
     - lentils
 
-2.  Boil some water.
+2. Boil some water.
 
-3.  Dump everything in the pot and follow
+3. Dump everything in the pot and follow
     this algorithm:
 
         find wooden spoon
@@ -172,7 +163,9 @@ A horizontal rule follows.
 
 And images can be specified like so:
 
-![example image "this is nice"](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.XBuTOZYvrMgYELZ9HzJNZQHaEK%26pid%3DApi&f=1 'An exemplary image')
+![example image "this is nice"](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.XBuTOZYvrMgYELZ9HzJNZQHaEK%26pid%3DApi&f=1 "An exemplary image")
+
+_A test caption_
 
 Inline math equation: $\omega = d\phi / dt$. Display
 math should get its own line like so:
@@ -188,55 +181,6 @@ Nice, isn't it?
 
 Here's to some good writing! :champagne: I'll see y'all around.
 
-==Adios!==
-
-<div class='adm adm_info'>
-    <p class="title"> **ℹ️  INFO** This is a  info admonition </p>
-    <div class="body">
-    here is where I'll show you what you need to know.
-
-    I can even add a code block in here!
-
-    ```rust
-    println!("This is nice.");
-    ```
-    </div>
-
-</div>
-
-<div class='adm adm_warning'>
-    <p class="title"> **⚠️  WARNING** This is a  warning admonition </p>
-    <div class="body">
-    nice, **this** is nice
-    </div>
-</div>
-
-<div class='adm adm_note'>
-    <p class="title">**✍️  NOTE** This is a  note admonition </p>
-    <div class="body">
-    Here is where i'll tell you to take note of something.
-    </div>
-</div>
-
-<div class='adm adm_remember'>
-    <p class="title"> **🧠 REMEMBER** This is for you to remember something.</p>
-    <div class="body">
-    nice, **this** is nice
-    </div>
-</div>
-
-<div class='adm adm_bug'>
-    <p class="title"> **🐞 BUG** Here's a bug! </p>
-    <div class="body">
-    The issue's on line 10 of this code.
-
-    ```c
-    #include <stdio.h>
-    int main() {
-        printf("hello, world!\n");
-    }
-    ```
-</div>
-
+== Adios! ==
 
 [^1]: footnotes are fun!
