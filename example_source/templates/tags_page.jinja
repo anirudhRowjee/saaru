@@ -1,0 +1,12 @@
+{% extends "base.jinja" %}
+
+{% block main_template_content %}
+<h1> Pages Tagged {{tag}} </h1>
+<div>
+  <ul>
+    {% for post in posts %}
+    <li> <a href="{{post.link}}"> {{post.frontmatter.title}}</a> </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

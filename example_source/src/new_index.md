@@ -4,13 +4,8 @@ description: just a small feature demonstration of the capabilites of this blog
 wip: true
 template: hello2.jinja
 tags:
-  - look
-  - ma
-  - i
-  - can
-  - use
-  - tags
-  - special_tag
+  - benchmark_test
+  - benchmark_test_2
 ---
 
 [Link to page 2](/index2)

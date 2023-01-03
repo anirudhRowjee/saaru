@@ -9,6 +9,7 @@
         .container {
             padding: 1em;
             margin: 1em;
+            width: 80vw;
         }
 
         .frontmatter {
@@ -19,21 +20,10 @@
 </head>
 
 <body>
+    <h1> Anirudh's Test Blog :D </h1>
     <main class="container">
         {% block main_template_content %}
         {% endblock %}
     </main>
-    <div>
-        <ul>
-            {% for tag in tags %}
-            <li> {{tag}} </li>
-            <ol>
-                {% for post in tags[tag] %}
-                <li> {{post.frontmatter.title}} </li>
-                {% endfor %}
-            </ol>
-            {% endfor %}
-        </ul>
-    </div>
     <script>hljs.highlightAll();</script>
 </body>

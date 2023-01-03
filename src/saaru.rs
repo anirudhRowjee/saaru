@@ -62,6 +62,7 @@ pub struct AugmentedFrontMatter {
     source_path: String,
     file_content: String,
     write_path: String,
+    relative_build_path: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -69,14 +70,16 @@ pub struct ThinAugmentedFrontMatter {
     frontmatter: FrontMatter,
     source_path: String,
     write_path: String,
+    link: String,
 }
 
 impl From<AugmentedFrontMatter> for ThinAugmentedFrontMatter {
     fn from(old: AugmentedFrontMatter) -> Self {
         ThinAugmentedFrontMatter {
-            frontmatter: old.frontmatter.clone(),
-            source_path: old.source_path.clone(),
-            write_path: old.write_path.clone(),
+            frontmatter: old.frontmatter,
+            source_path: old.source_path,
+            write_path: old.write_path,
+            link: old.relative_build_path,
         }
     }
 }
@@ -188,8 +191,23 @@ impl SaaruInstance<'_> {
         write_path.set_extension("html");
 
         // Append the write path into the base directory
+        // TODO Keep non-prefixed segment for relative links
         let final_write_path = self.arguments.build_dir.join(&write_path);
         final_write_path
+    }
+
+    pub fn get_relative_path_from_write_path(&self, write_path: &PathBuf) -> PathBuf {
+        // Strip the base directory from the write path, giving you the build-local
+        // Hyperlink you can drop in to the HTML to have valid links
+        // Assumes input is coming from the get_write_path function
+        let dir_path = write_path
+            .strip_prefix(&self.arguments.build_dir)
+            .unwrap()
+            .to_path_buf();
+        let mut relative = PathBuf::from("/");
+        relative = relative.join(dir_path);
+        println!("Stripped Relative Path -> {:?}", relative);
+        relative
     }
 
     pub fn preprocess_file_data(&mut self, filename: &Path) {
@@ -206,22 +224,40 @@ impl SaaruInstance<'_> {
         let cleaned_markdown = remove_frontmatter(&markdown_file_content);
         let filename_str = filename.clone().display().to_string();
 
+        let write_path = self.get_write_path(filename);
+        let relative_build_path = self.get_relative_path_from_write_path(&write_path);
+
         let aug_fm_struct = AugmentedFrontMatter {
             file_content: cleaned_markdown.clone(),
             frontmatter: parsed_frontmatter.clone(),
             source_path: filename_str.clone(),
-            write_path: self.get_write_path(filename).to_str().unwrap().to_string(),
+            // HACK don't regenerate here, take from caller
+            write_path: write_path.display().to_string(),
+            relative_build_path: relative_build_path.display().to_string(),
         };
 
         let tag_copy = aug_fm_struct.clone();
-        let collection_copy = aug_fm_struct.clone();
+        // let collection_copy = aug_fm_struct.clone();
 
+        // Add the file to the tag map
         for tag in &tag_copy.frontmatter.tags {
             self.tag_map
                 .entry(tag.to_string())
                 .and_modify(|list| list.push(ThinAugmentedFrontMatter::from(tag_copy.clone())))
-                .or_insert(vec![ThinAugmentedFrontMatter::from(tag_copy.clone())]);
+                .or_insert({
+                    let mut new: Vec<ThinAugmentedFrontMatter> = Vec::with_capacity(1000);
+                    new.push(ThinAugmentedFrontMatter::from(tag_copy.clone()));
+                    new
+                });
         }
+
+        // Add the file to the content map
+        // for tag in &tag_copy.frontmatter.tags {
+        //     self.tag_map
+        //         .entry(tag.to_string())
+        //         .and_modify(|list| list.push(ThinAugmentedFrontMatter::from(tag_copy.clone())))
+        //         .or_insert(vec![ThinAugmentedFrontMatter::from(tag_copy.clone())]);
+        // }
 
         self.frontmatter_map.insert(filename_str, aug_fm_struct);
 
@@ -294,6 +330,38 @@ impl SaaruInstance<'_> {
         }
     }
 
+    fn render_tags_pages(&self) {
+        // A function to render all pages for tags
+        // TODO Document that it's necessary to have these templates
+        let tag_index_template = self.template_env.get_template("tags.jinja").unwrap();
+
+        let tag_individual_template = self.template_env.get_template("tags_page.jinja").unwrap();
+
+        let base_tags_path = self.arguments.build_dir.clone().join("tags");
+
+        // Render the index page
+        let tags_index_rendered_html = tag_index_template
+            .render(context!(
+                tags => &self.tag_map,
+            ))
+            .unwrap();
+        self.write_html_to_file(base_tags_path.join("index.html"), tags_index_rendered_html);
+
+        // Render a page for every single tag
+        for (key, val) in &self.tag_map {
+            let tags_index_rendered_html = tag_individual_template
+                .render(context!(
+                    tag => &key,
+                    posts => &val
+                ))
+                .unwrap();
+            self.write_html_to_file(
+                base_tags_path.join(PathBuf::from(&key)),
+                tags_index_rendered_html,
+            );
+        }
+    }
+
     pub fn alternate_render_pipeline(&mut self) {
         // Full pipeline for rendering again
         // Stage 1: Preprocess all files, make all necessary directories
@@ -302,6 +370,7 @@ impl SaaruInstance<'_> {
         log::info!("[PREFLIGHT] Checking for Build Directory");
         match fs::create_dir(&self.arguments.build_dir) {
             Ok(_) => log::info!("Build Directory Created Successfully"),
+            // TODO better error handling
             Err(_) => log::warn!("Build Directory Already Exists!"),
         };
 
@@ -316,18 +385,19 @@ impl SaaruInstance<'_> {
 
             log::info!("Processing File {:?}", entry);
             let entry_path = entry.path();
-            let final_write_path = self.get_write_path(entry_path);
-            log::info!("Generated Write Path {:?}", final_write_path);
+            // let final_write_path = self.get_write_path(entry_path);
+            // log::info!("Generated Write Path {:?}", final_write_path);
 
             self.preprocess_file_data(entry_path);
             log::info!("Finished Processing File {:?}", entry);
         }
 
         // Print out the tag map
-        println!("Tag Map -> {:?}", self.tag_map);
+        // println!("Tag Map -> {:?}", self.tag_map);
 
         log::info!("Rendering Stage");
         self.render_all_files();
+        self.render_tags_pages();
     }
 }
 

@@ -1,0 +1,12 @@
+{% extends "base.jinja" %}
+
+{% block main_template_content %}
+<h1> Tags </h1>
+<div>
+  <ul>
+    {% for tag in tags %}
+    <li> <a href="/tags/{{tag}}"> {{tag}}</a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}
