@@ -39,7 +39,7 @@ SAARU -> StAtic Almanac Renderer and Unifier
   - [x] Think about single-tree-pass DDM Data Sourcing (implemented in the 2-pass method)
   - [x] Collect frontmatter data
   - [x] Implement Deep Data Merge for Tags
-  - [ ] Implement Deep Data Merge for Collections
+  - [x] Implement Deep Data Merge for Collections
 
 - [ ] Web server + Live reload?
 - [ ] tree-shaken rendering, only re-render what's changed?

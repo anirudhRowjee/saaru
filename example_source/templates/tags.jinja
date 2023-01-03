@@ -9,4 +9,17 @@
     {% endfor %}
   </ul>
 </div>
+
+<h1> Collections </h1>
+<ul>
+  {% for collection in collections %}
+  <li> {{collection}}
+    <ol>
+      {% for post in collections[collection] %}
+      <li> <a href="{{post.link}}"> {{post.frontmatter.title}}</a> </li>
+      {% endfor %}
+    </ol>
+  </li>
+  {% endfor %}
+</ul>
 {% endblock %}

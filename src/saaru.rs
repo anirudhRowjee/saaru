@@ -54,6 +54,7 @@ struct FrontMatter {
     wip: bool,
     // This is the optional template string
     template: Option<String>,
+    collections: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -94,7 +95,7 @@ pub struct SaaruInstance<'a> {
     arguments: SaaruArguments,
 
     // Runtime Data
-    collection_map: HashMap<String, Vec<FrontMatter>>,
+    collection_map: HashMap<String, Vec<ThinAugmentedFrontMatter>>,
     tag_map: HashMap<String, Vec<ThinAugmentedFrontMatter>>,
     frontmatter_map: HashMap<String, AugmentedFrontMatter>,
 }
@@ -237,7 +238,7 @@ impl SaaruInstance<'_> {
         };
 
         let tag_copy = aug_fm_struct.clone();
-        // let collection_copy = aug_fm_struct.clone();
+        let collection_copy = aug_fm_struct.clone();
 
         // Add the file to the tag map
         for tag in &tag_copy.frontmatter.tags {
@@ -251,13 +252,26 @@ impl SaaruInstance<'_> {
                 });
         }
 
-        // Add the file to the content map
-        // for tag in &tag_copy.frontmatter.tags {
-        //     self.tag_map
-        //         .entry(tag.to_string())
-        //         .and_modify(|list| list.push(ThinAugmentedFrontMatter::from(tag_copy.clone())))
-        //         .or_insert(vec![ThinAugmentedFrontMatter::from(tag_copy.clone())]);
-        // }
+        // Check if there's a collection defined for that page
+        match &collection_copy.frontmatter.collections {
+            Some(collection_list) => {
+                for collection in collection_list {
+                    self.collection_map
+                        .entry(collection.to_string())
+                        .and_modify(|list| {
+                            list.push(ThinAugmentedFrontMatter::from(collection_copy.clone()))
+                        })
+                        .or_insert({
+                            let mut new: Vec<ThinAugmentedFrontMatter> = Vec::with_capacity(1000);
+                            new.push(ThinAugmentedFrontMatter::from(collection_copy.clone()));
+                            new
+                        });
+                }
+            }
+            None => {
+                println!("No Collections!");
+            }
+        }
 
         self.frontmatter_map.insert(filename_str, aug_fm_struct);
 
@@ -290,6 +304,7 @@ impl SaaruInstance<'_> {
                 frontmatter => input_aug_frontmatter.frontmatter,
                 postcontent => html_output,
                 tags => &self.tag_map,
+                collections => &self.collection_map,
             ))
             .unwrap();
 
@@ -343,6 +358,7 @@ impl SaaruInstance<'_> {
         let tags_index_rendered_html = tag_index_template
             .render(context!(
                 tags => &self.tag_map,
+                collections => &self.collection_map,
             ))
             .unwrap();
         self.write_html_to_file(base_tags_path.join("index.html"), tags_index_rendered_html);
@@ -352,7 +368,8 @@ impl SaaruInstance<'_> {
             let tags_index_rendered_html = tag_individual_template
                 .render(context!(
                     tag => &key,
-                    posts => &val
+                    posts => &val,
+                    collections => &self.collection_map,
                 ))
                 .unwrap();
             self.write_html_to_file(
@@ -397,7 +414,12 @@ impl SaaruInstance<'_> {
 
         log::info!("Rendering Stage");
         self.render_all_files();
+
+        log::info!("Rendering Tags");
         self.render_tags_pages();
+
+        log::info!("Printing Collections Map");
+        println!("{:?}", &self.collection_map);
     }
 }
 

@@ -2,7 +2,7 @@
 title: This is my first post!
 description: test to see if multi-file rendering works
 wip: true
-template: post_new.jinja
+template: post.jinja
 tags:
   - hello
   - this_is_a_new_tag

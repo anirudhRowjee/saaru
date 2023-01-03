@@ -1,0 +1,16 @@
+{% extends "base.jinja" %}
+
+{% block main_template_content %}
+<h1> All Posts </h1>
+<div>
+  {{postcontent | safe}}
+</div>
+
+<ul>
+    <ol>
+      {% for post in collections["posts"] %}
+      <li> <a href="{{post.link}}"> {{post.frontmatter.title}}</a> </li>
+      {% endfor %}
+    </ol>
+</ul>
+{% endblock %}

@@ -1,8 +1,8 @@
 ---
-title: Hello Tarun
+title: Hello, world!
 description: just a small feature demonstration of the capabilites of this blog
 wip: true
-template: hello2.jinja
+template: post.jinja
 tags:
   - look
   - ma
@@ -11,6 +11,9 @@ tags:
   - use
   - tags
   - special_tag
+collections:
+  - posts
+  - new_collection
 ---
 
 [Link to page 2](/index2)
