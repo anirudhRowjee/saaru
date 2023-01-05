@@ -166,11 +166,16 @@ A horizontal rule follows.
 
 ---
 
+What about footnotes?[^1]
+
 And images can be specified like so:
 
-![example image "this is nice"](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.XBuTOZYvrMgYELZ9HzJNZQHaEK%26pid%3DApi&f=1 "An exemplary image")
 
-_A test caption_
+
+![example image "this is nice"](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.XBuTOZYvrMgYELZ9HzJNZQHaEK%26pid%3DApi&f=1)
+
+
+  
 
 Inline math equation: $\omega = d\phi / dt$. Display
 math should get its own line like so:
@@ -188,6 +193,8 @@ Here's to some good writing! :champagne: I'll see y'all around.
 
 == Adios! ==
 
-What about footnotes?[^1]
+
+
+
 
 [^1]: footnotes are fun!

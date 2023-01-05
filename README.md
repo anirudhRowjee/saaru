@@ -73,29 +73,28 @@ Saaru means Rasam, which is a type of spicy, thin lentil soup, often eaten with 
 
 SAARU -> StAtic Almanac Renderer and Unifier
 
-## Feature map
+## TODO
 
-- [x] Render a single markdown file to HTML
-- [x] Render a single markdown file to HTML with a Jinja Template
-- [x] URGENT: Remove frontmatter from being rendered in the HTML
-- [x] Make templates readable from a single directory
-  - [x] URGENT: This is probably a good time to add - [x] Reference folder structure - [x] Command Line Arguments (to pass in path to reference folder structure)
-  - [x] Make template readable from frontmatter
-  - [x] Solve for nested templates
-- [x] Render a directory structure of Markdown and Jinja to a directory structure of HTML
+- [ ] Make all frontmatter optional
+- [ ] Static Directory Support (Minify CSS and Build, copy over all other static files)
+- [ ] Custom Info JSON File - for defaults, fixed params, etc (Perhaps a `.saaru.json`)
+      ```json
+      {
+        "default_dir": "abc",
+        "default_template": "some_template.jinja",
+        "author": {
+          "name": "Somesh",
+          "bio": "this is my bio",
+          "twitter": "..."
+        }
+      }
+      ```
 - [ ] Run Pre-flight checks (check if templates dir exists, check if source dir exists, etc)
 - [ ] External CSS / Custom CSS injection
-- [ ] Parallelized rendering (see HACK comments)
-- [x] Think about [Deep Data Merge](https://www.11ty.dev/docs/data/)
-
-  - [x] Think about single-tree-pass DDM Data Sourcing (implemented in the 2-pass method)
-  - [x] Collect frontmatter data
-  - [x] Implement Deep Data Merge for Tags
-  - [x] Implement Deep Data Merge for Collections
-
+- [ ] Parallelized rendering 
 - [ ] Web server + Live reload?
 - [ ] tree-shaken rendering, only re-render what's changed?
-  - [ ] Merkle Tree based hash checks?
+- [ ] Merkle Tree based hash checks?
 
 ## Data Merge Architecture
 

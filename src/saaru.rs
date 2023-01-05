@@ -110,40 +110,6 @@ const LOGO: &str = r"
 A Static Site Generator for Fun and Profit
 ";
 
-pub fn remove_frontmatter(markdown_file_content: &str) -> String {
-    // This is a destructive write, we don't expect parallel ownership
-    // of this anywhere
-
-    let mut encounter_count = 0;
-    let mut removal_complete = false;
-
-    let in_frontmatter_block = markdown_file_content
-        .to_string()
-        .split("\n")
-        .map(|segment| {
-            if !removal_complete {
-                if segment == "---" {
-                    encounter_count += 1
-                }
-                if encounter_count % 2 == 0 {
-                    removal_complete = true;
-                }
-                ""
-            } else {
-                segment
-            }
-        })
-        .fold(String::new(), |mut a, b| -> String {
-            // don't push a newline in these cases
-            if a != "" && b != "" {
-                a.push_str("\n");
-            }
-            a.push_str(&b.to_owned());
-            a
-        });
-    in_frontmatter_block
-}
-
 impl SaaruInstance<'_> {
     /*
      * functions for Saaru
@@ -162,7 +128,7 @@ impl SaaruInstance<'_> {
         options.extension.footnotes = true;
         options.extension.strikethrough = true;
         options.extension.description_lists = true;
-        options.extension.superscript = true;
+        // options.extension.superscript = true;
 
         SaaruInstance {
             template_env: Environment::new(),
@@ -230,7 +196,7 @@ impl SaaruInstance<'_> {
             .deserialize()
             .unwrap();
 
-        let cleaned_markdown = remove_frontmatter(&markdown_file_content);
+        let cleaned_markdown = markdown_file_content;
         let filename_str = filename.clone().display().to_string();
 
         let write_path = self.get_write_path(filename);
@@ -410,9 +376,8 @@ impl SaaruInstance<'_> {
 
             log::info!("Processing File {:?}", entry);
             let entry_path = entry.path();
-            // let final_write_path = self.get_write_path(entry_path);
-            // log::info!("Generated Write Path {:?}", final_write_path);
 
+            // TODO If the file is markdown, preprocess, else just copy
             self.preprocess_file_data(entry_path);
             log::info!("Finished Processing File {:?}", entry);
         }
@@ -428,57 +393,5 @@ impl SaaruInstance<'_> {
 
         // log::info!("Printing Collections Map");
         // log::info!("{:?}", &self.collection_map);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::saaru::remove_frontmatter;
-
-    #[test]
-    fn test_frontmatter_cleaner() {
-        let non_cleaned_string: &str = "---\nthis should not be there\n---\nthis is okay";
-        let cleaned_string: &str = "this is okay";
-
-        assert_eq!(
-            cleaned_string.to_owned(),
-            remove_frontmatter(non_cleaned_string)
-        )
-    }
-
-    #[test]
-    fn test_frontmatter_cleaner_multiple_segment() {
-        let non_cleaned_string: &str =
-            "---\nthis should not be there\n---\nthis is okay\n---\nthis should make it in";
-        let cleaned_string: &str = "this is okay\n---\nthis should make it in";
-
-        assert_eq!(
-            cleaned_string.to_owned(),
-            remove_frontmatter(non_cleaned_string)
-        )
-    }
-
-    #[test]
-    fn test_frontmatter_cleaner_multiple_segment_tables() {
-        let non_cleaned_string: &str =
-            "---\nthis should not be there\n---\nthis is okay\n---\nthis should make it in\n---";
-        let cleaned_string: &str = "this is okay\n---\nthis should make it in\n---";
-
-        assert_eq!(
-            cleaned_string.to_owned(),
-            remove_frontmatter(non_cleaned_string)
-        )
-    }
-
-    #[test]
-    fn test_frontmatter_cleaner_does_not_harm_tables() {
-        let non_cleaned_string: &str =
-            "---\nthis should not be there\n---\nthis is okay\n---\nthis should make it in\n---\n | Header  | Another Header |\n | ------- | -------------- |\n | field 1 | value one      | ";
-        let cleaned_string: &str = "this is okay\n---\nthis should make it in\n---\n | Header  | Another Header |\n | ------- | -------------- |\n | field 1 | value one      | ";
-
-        assert_eq!(
-            cleaned_string.to_owned(),
-            remove_frontmatter(non_cleaned_string)
-        )
     }
 }
