@@ -1,5 +1,5 @@
 [package]
-name = "custom-ssg"
+name = "saaru"
 version = "0.1.0"
 edition = "2021"
 

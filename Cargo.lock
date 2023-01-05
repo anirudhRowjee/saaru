@@ -189,21 +189,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "custom-ssg"
-version = "0.1.0"
-dependencies = [
- "clap",
- "comrak",
- "gray_matter",
- "log",
- "minijinja",
- "pulldown-cmark",
- "serde",
- "simple_logger",
- "walkdir",
-]
-
-[[package]]
 name = "digest"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -687,6 +672,21 @@ name = "ryu"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4501abdff3ae82a1c1b477a17252eb69cee9e66eb915c1abaa4f44d873df9f09"
+
+[[package]]
+name = "saaru"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "comrak",
+ "gray_matter",
+ "log",
+ "minijinja",
+ "pulldown-cmark",
+ "serde",
+ "simple_logger",
+ "walkdir",
+]
 
 [[package]]
 name = "safemem"
