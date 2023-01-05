@@ -6,6 +6,8 @@ template: post.jinja
 tags:
   - hello
   - this_is_a_new_tag
+collections:
+  - posts
 ---
 
 # Document Title

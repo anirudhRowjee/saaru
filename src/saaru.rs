@@ -21,9 +21,11 @@ pub struct SaaruArguments {
 }
 
 impl SaaruArguments {
-    pub fn new(base_dir: String) -> Self {
+    pub fn new(mut base_dir: PathBuf) -> Self {
         println!("[LOG] Initializing Arguments");
-        let root_path = PathBuf::from(&base_dir);
+
+        base_dir = std::fs::canonicalize(base_dir).unwrap();
+
         let mut template_path = PathBuf::from(&base_dir);
         let mut static_path = PathBuf::from(&base_dir);
         let mut content_path = PathBuf::from(&base_dir);
@@ -34,10 +36,10 @@ impl SaaruArguments {
         content_path.push("src");
         build_path.push("build");
 
-        println!("[LOG] Initalized Arguments from Base Path {:?}", root_path);
+        println!("[LOG] Initalized Arguments from Base Path {:?}", &base_dir);
 
         SaaruArguments {
-            base_dir: root_path,
+            base_dir,
             template_dir: template_path,
             source_dir: content_path,
             static_dir: static_path,
@@ -207,7 +209,7 @@ impl SaaruInstance<'_> {
             .to_path_buf();
         let mut relative = PathBuf::from("/");
         relative = relative.join(dir_path);
-        println!("Stripped Relative Path -> {:?}", relative);
+        log::info!("Stripped Relative Path -> {:?}", relative);
         relative
     }
 
@@ -269,15 +271,11 @@ impl SaaruInstance<'_> {
                 }
             }
             None => {
-                println!("No Collections!");
+                log::warn!("No Collections!");
             }
         }
 
         self.frontmatter_map.insert(filename_str, aug_fm_struct);
-
-        // Load the Tag Map
-
-        // TODO Insert into tag and collection maps, respectively
     }
 
     pub fn render_file_from_frontmatter(
@@ -419,7 +417,7 @@ impl SaaruInstance<'_> {
         self.render_tags_pages();
 
         log::info!("Printing Collections Map");
-        println!("{:?}", &self.collection_map);
+        log::info!("{:?}", &self.collection_map);
     }
 }
 

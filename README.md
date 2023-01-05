@@ -11,6 +11,60 @@ Saaru is now an SSG Written in Rust. It uses Jinja Templates to render, along wi
 A Static Site Generator for Fun and Profit
 ```
 
+## Usage
+
+Running the program is simple. Once you have the repository cloned, you can use the following command to check oout the example site ->
+
+```bash
+$ cargo run -- --build_path <your example_source directory>
+```
+
+Feel free to base your site off of the `example_source` directory, which already has a bunch of templates pre-defined for you. It's got my name in there, but TODO Refactor soon enough.
+
+```bash
+$ cargo run -- --build_path ./example_source
+```
+
+If nothing's wrong, your entire site as HTML and CSS will present itself in the `./example_source/build` directory. From then onwards, all you need to do is launch a web server with `./example_source/build` as the source such as [this package](https://www.npmjs.com/package/serve).
+
+As of right now, Saaru is a little opinioniated on how exactly you should structure your site. As of right now, it boils down to having a folder with the following structure =>
+
+```
+example_source/
+├── src
+│   ├── index2.md
+│   ├── index.md
+│   ├── new_index.md
+│   └── posts
+│       ├── index.md
+│       └── post1.md
+└── templates
+    ├── base.jinja
+    ├── post_index.jinja
+    ├── post.jinja
+    ├── post_new.jinja
+    ├── tags.jinja
+    └── tags_page.jinja
+```
+
+It's possible to have an abitrary configuration of files in the `src` folder, so long as you've got each and every markdown document with the right frontmatter.
+
+Here's the absolute minimum frontmatter. (This will be iterated on, but as of now - ) There must be **A MINIMUM OF ONE TAG PER POST**.
+
+```yaml
+---
+title: <A title for your post>
+description: <a description>
+template: post.jinja # This must be a valid template from the `templates` directory
+tags:
+  - <example tag 1>
+  - <example tag 2>
+collections:
+  - <example collection>
+  - <example collection 2>
+---
+```
+
 ### Etymology
 
 Saaru means Rasam, which is a type of spicy, thin lentil soup, often eaten with rice. This project is called Saaru because I like Saaru very much.
@@ -29,11 +83,9 @@ SAARU -> StAtic Almanac Renderer and Unifier
   - [x] Make template readable from frontmatter
   - [x] Solve for nested templates
 - [x] Render a directory structure of Markdown and Jinja to a directory structure of HTML
-
 - [ ] Run Pre-flight checks (check if templates dir exists, check if source dir exists, etc)
 - [ ] External CSS / Custom CSS injection
 - [ ] Parallelized rendering (see HACK comments)
-
 - [x] Think about [Deep Data Merge](https://www.11ty.dev/docs/data/)
 
   - [x] Think about single-tree-pass DDM Data Sourcing (implemented in the 2-pass method)
@@ -44,12 +96,6 @@ SAARU -> StAtic Almanac Renderer and Unifier
 - [ ] Web server + Live reload?
 - [ ] tree-shaken rendering, only re-render what's changed?
   - [ ] Merkle Tree based hash checks?
-
-### Rearchitecting - wipe
-
-~~How will I make the codebase work with all these features?~~
-
-I DID IT!
 
 ## Data Merge Architecture
 
@@ -105,4 +151,4 @@ In this architecture, there are two passes that go into rendering files - this i
 2. Render Pass
    - Iterate through the entire hashmap, passing the collections available as a part of the context
    - Render the markdown present and write it to file
-   - [ ] Now the entire set of templates has access to the data acquired in the merge.
+   - Now the entire set of templates has access to the data acquired in the merge.

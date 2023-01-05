@@ -2,7 +2,7 @@
 title: Hello, world!
 description: just a small feature demonstration of the capabilites of this blog
 wip: true
-template: post.jinja
+template: index.jinja
 tags:
   - look
   - ma

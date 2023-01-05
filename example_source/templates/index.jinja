@@ -1,0 +1,14 @@
+{% extends "base.jinja" %}
+
+{% block main_template_content %}
+<h1> Welcome to my website! </h1>
+<h3> here are some of my posts </h3>
+<ol>
+  {% for post in collections.posts %}
+  <li>
+    <a href="{{post.link}}"> {{post.frontmatter.title}} </a> {{post.frontmatter.description}}
+    <sub{{post.frontmatter.tags}}< /sub>
+  </li>
+  {%endfor%}
+</ol>
+{% endblock %}
