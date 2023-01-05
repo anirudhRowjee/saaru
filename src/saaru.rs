@@ -1,10 +1,9 @@
+use comrak::{markdown_to_html, ComrakOptions};
 use gray_matter::{engine::YAML, Matter};
 use minijinja::{context, Environment, Source};
-use pulldown_cmark::{html, Options, Parser};
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -22,7 +21,7 @@ pub struct SaaruArguments {
 
 impl SaaruArguments {
     pub fn new(mut base_dir: PathBuf) -> Self {
-        println!("[LOG] Initializing Arguments");
+        log::info!("Initializing Arguments");
 
         base_dir = std::fs::canonicalize(base_dir).unwrap();
 
@@ -36,7 +35,7 @@ impl SaaruArguments {
         content_path.push("src");
         build_path.push("build");
 
-        println!("[LOG] Initalized Arguments from Base Path {:?}", &base_dir);
+        log::info!("Initalized Arguments from Base Path {:?}", &base_dir);
 
         SaaruArguments {
             base_dir,
@@ -53,7 +52,7 @@ struct FrontMatter {
     title: String,
     description: String,
     tags: Vec<String>,
-    wip: bool,
+    wip: Option<bool>,
     // This is the optional template string
     template: Option<String>,
     collections: Option<Vec<String>>,
@@ -93,7 +92,7 @@ pub struct SaaruInstance<'a> {
 
     // TODO Currently set to frontmatter YAML, see if you need to change this Via a config file later
     pub frontmatter_parser: Matter<YAML>,
-    markdown_options: Options,
+    markdown_options: ComrakOptions,
     arguments: SaaruArguments,
 
     // Runtime Data
@@ -151,17 +150,24 @@ impl SaaruInstance<'_> {
      */
 
     pub fn new(args: SaaruArguments) -> Self {
-        simple_logger::SimpleLogger::new().env().init().unwrap();
-
-        println!("{}", LOGO);
+        log::info!("{}", LOGO);
         log::info!("Printed Logo");
 
-        log::info!("Initialized Logger");
+        let mut options = ComrakOptions::default();
+        options.extension.front_matter_delimiter = Some("---".to_owned());
+        options.extension.table = true;
+        options.extension.autolink = true;
+        options.extension.tasklist = true;
+        options.extension.tagfilter = true;
+        options.extension.footnotes = true;
+        options.extension.strikethrough = true;
+        options.extension.description_lists = true;
+        options.extension.superscript = true;
 
         SaaruInstance {
             template_env: Environment::new(),
             frontmatter_parser: Matter::new(),
-            markdown_options: Options::all(),
+            markdown_options: options,
             arguments: args,
 
             // Data Merge
@@ -278,16 +284,19 @@ impl SaaruInstance<'_> {
         self.frontmatter_map.insert(filename_str, aug_fm_struct);
     }
 
+    pub fn convert_markdown_to_html(&self, markdown: String) -> String {
+        let parser = markdown_to_html(&markdown, &self.markdown_options);
+        parser
+    }
+
     pub fn render_file_from_frontmatter(
         &self,
         input_aug_frontmatter: AugmentedFrontMatter,
     ) -> String {
-        let parser = Parser::new_ext(&input_aug_frontmatter.file_content, self.markdown_options);
-        let mut html_output = String::new();
+        // Conver the Markdown to HTML
+        let html_output = self.convert_markdown_to_html(input_aug_frontmatter.file_content);
 
-        html::push_html(&mut html_output, parser);
-
-        // Render the template
+        // Fetch the Template
         let rendered_template = match &input_aug_frontmatter.frontmatter.template {
             Some(template_name) => self.template_env.get_template(&template_name).unwrap(),
             None => {
@@ -295,6 +304,7 @@ impl SaaruInstance<'_> {
             }
         };
 
+        // Render the template
         let rendered_final_html = rendered_template
             .render(context!(
                 name => "Anirudh",
@@ -416,8 +426,8 @@ impl SaaruInstance<'_> {
         log::info!("Rendering Tags");
         self.render_tags_pages();
 
-        log::info!("Printing Collections Map");
-        log::info!("{:?}", &self.collection_map);
+        // log::info!("Printing Collections Map");
+        // log::info!("{:?}", &self.collection_map);
     }
 }
 

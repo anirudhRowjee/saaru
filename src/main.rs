@@ -14,9 +14,12 @@ struct Arguments {
 }
 
 fn main() {
-    // TODO Make this a command line argument
+    //
+    simple_logger::SimpleLogger::new().env().init().unwrap();
+    log::info!("Initialized Logger");
+
     let commandline_arguments = Arguments::parse();
-    println!("Command Line Arguments -> {:?}", &commandline_arguments);
+    log::info!("Command Line Arguments -> {:?}", &commandline_arguments);
 
     let args = SaaruArguments::new(commandline_arguments.base_path);
     let mut instance = SaaruInstance::new(args);
@@ -25,5 +28,5 @@ fn main() {
     instance.set_template_environment();
     instance.alternate_render_pipeline();
     let end = time::Instant::now();
-    println!("Total Time Taken -> {:?}", end - start);
+    log::info!("Total Time Taken -> {:?}", end - start);
 }

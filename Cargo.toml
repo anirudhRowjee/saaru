@@ -14,3 +14,4 @@ walkdir = "2"
 log = "0.4.17"
 simple_logger = "4.0.0"
 clap = { version = "4.0.32", features = ["derive"]}
+comrak = "0.15.0"
