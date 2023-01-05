@@ -16,13 +16,13 @@ A Static Site Generator for Fun and Profit
 Running the program is simple. Once you have the repository cloned, you can use the following command to check oout the example site ->
 
 ```bash
-$ cargo run -- --build_path <your example_source directory>
+$ cargo run -- --base_path <your example_source directory>
 ```
 
 Feel free to base your site off of the `example_source` directory, which already has a bunch of templates pre-defined for you. It's got my name in there, but TODO Refactor soon enough.
 
 ```bash
-$ cargo run -- --build_path ./example_source
+$ cargo run -- --base_path ./example_source
 ```
 
 If nothing's wrong, your entire site as HTML and CSS will present itself in the `./example_source/build` directory. From then onwards, all you need to do is launch a web server with `./example_source/build` as the source such as [this package](https://www.npmjs.com/package/serve).
@@ -78,20 +78,22 @@ SAARU -> StAtic Almanac Renderer and Unifier
 - [ ] Make all frontmatter optional
 - [ ] Static Directory Support (Minify CSS and Build, copy over all other static files)
 - [ ] Custom Info JSON File - for defaults, fixed params, etc (Perhaps a `.saaru.json`)
-      ```json
-      {
-        "default_dir": "abc",
-        "default_template": "some_template.jinja",
-        "author": {
-          "name": "Somesh",
-          "bio": "this is my bio",
-          "twitter": "..."
-        }
-      }
-      ```
+
+  ```json
+  {
+    "default_dir": "abc",
+    "default_template": "some_template.jinja",
+    "author": {
+      "name": "Somesh",
+      "bio": "this is my bio",
+      "twitter": "..."
+    }
+  }
+  ```
+
 - [ ] Run Pre-flight checks (check if templates dir exists, check if source dir exists, etc)
 - [ ] External CSS / Custom CSS injection
-- [ ] Parallelized rendering 
+- [ ] Parallelized rendering
 - [ ] Web server + Live reload?
 - [ ] tree-shaken rendering, only re-render what's changed?
 - [ ] Merkle Tree based hash checks?
