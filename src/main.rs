@@ -14,7 +14,6 @@ struct Arguments {
 }
 
 fn main() {
-    //
     simple_logger::SimpleLogger::new().env().init().unwrap();
     log::info!("Initialized Logger");
 

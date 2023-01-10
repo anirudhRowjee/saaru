@@ -1,0 +1,76 @@
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/tokyo-night-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/highlight.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Gentium+Plus&family=Inter&family=JetBrains+Mono:wght@300&family=Major+Mono+Display&family=Sofia+Sans+Semi+Condensed&display=swap"
+        rel="stylesheet">
+
+    <style>
+        .container {
+            padding: 1em;
+            margin: 1em;
+        }
+
+        body {
+            font-family: 'Iosevka' var, Serif;
+            line-height: 1.5;
+            font-size: 1rem;
+            font-feature-settings: "case" 1, "cpsp" 1, "dlig" 1, "cv01" 1, "cv02", "cv03" 1, "cv04" 1, "liga", "clig", "calt";
+            font-variation-settings: "wght" 450;
+            font-variant: common-ligatures contextual;
+        }
+
+        .frontmatter {
+            border: 1px dashed black;
+            padding: 0.5em;
+        }
+
+        .tag {
+            display: inline-block;
+            padding-left: .25rem;
+            padding-right: .25rem;
+            border-radius: .375rem;
+            margin-right: .25rem;
+            font-size: .875rem;
+            line-height: 1.25rem;
+            text-decoration: none;
+            --bg-opacity: 1;
+            /* background-color: #e2e8f0; */
+            background-color: rgba(226, 232, 240, var(--bg-opacity));
+            --text-opacity: 1;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        code {
+            background: #efefef;
+            background: var(--background);
+            color: #000;
+            color: var(--code);
+            padding: 2.5px 5px;
+            border-radius: 6px;
+            font-size: 1em;
+            font-family: monospace;
+        }
+    </style>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+</head>
+
+<body>
+    <main class="container">
+        {% block main_template_content %}
+        {% endblock %}
+    </main>
+    <script>hljs.highlightAll();</script>
+</body>

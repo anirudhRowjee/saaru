@@ -1,0 +1,17 @@
+{% extends "base.jinja" %}
+
+{% block main_template_content %}
+<div>
+    <h1> {{frontmatter.title}} </h1>
+    <p> {{frontmatter.description}} </p>
+    <p>
+        {% for tag in frontmatter.tags %}
+        <a class="tag" href="/tags/{{tag}}"> {{ tag }} </a>
+        {% endfor %}
+    </p>
+</div>
+<hr>
+<div class="post">
+    {{postcontent | safe}}
+</div>
+{% endblock %}

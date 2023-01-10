@@ -75,6 +75,8 @@ SAARU -> StAtic Almanac Renderer and Unifier
 
 ## TODO
 
+- [ ] Fix the error handling
+- [ ] [docs] Specify what the minimum supported file structure for opinionated mode is
 - [ ] Refactor!
 - [ ] Make the Saaru Docs a Saaru-generated website
 - [ ] Make all frontmatter optional

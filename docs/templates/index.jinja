@@ -1,0 +1,12 @@
+{% extends "base.jinja" %}
+
+{% block main_template_content %}
+<h1> Saaru Documentation </h1>
+{{postcontent | safe}}
+
+<hr>
+{% for tag in frontmatter.tags %}
+<a class="tag" href="/tags/{{tag}}">{{tag}}</a>
+{% endfor %}
+
+{% endblock %}

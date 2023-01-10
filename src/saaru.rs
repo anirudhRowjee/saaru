@@ -53,7 +53,6 @@ struct FrontMatter {
     description: String,
     tags: Vec<String>,
     wip: Option<bool>,
-    // This is the optional template string
     template: Option<String>,
     collections: Option<Vec<String>>,
 }
@@ -141,6 +140,12 @@ impl SaaruInstance<'_> {
             tag_map: HashMap::new(),
             frontmatter_map: HashMap::new(),
         }
+    }
+
+    pub fn validate_source_structure(&self) -> bool {
+        // Check if the source directory structure is as it's supposed to be
+        // TODO later validate for the right files existing
+        self.arguments.source_dir.exists() && self.arguments.template_dir.exists()
     }
 
     pub fn set_template_environment(&mut self) {
@@ -355,8 +360,14 @@ impl SaaruInstance<'_> {
 
     pub fn alternate_render_pipeline(&mut self) {
         // Full pipeline for rendering again
+        // Stage 0: Validate the submitted folder structur
         // Stage 1: Preprocess all files, make all necessary directories
-        // Staege 2: Render everything from the preprocessed map
+        // Stage 2: Render everything from the preprocessed map
+
+        log::info!("[PREFLIGHT] Validating Input Directory");
+        if !self.validate_source_structure() {
+            panic!("The Provided Source Directory is malformed! Please follow the right format.")
+        }
 
         log::info!("[PREFLIGHT] Checking for Build Directory");
         match fs::create_dir(&self.arguments.build_dir) {
@@ -382,16 +393,10 @@ impl SaaruInstance<'_> {
             log::info!("Finished Processing File {:?}", entry);
         }
 
-        // Print out the tag map
-        // println!("Tag Map -> {:?}", self.tag_map);
-
         log::info!("Rendering Stage");
         self.render_all_files();
 
         log::info!("Rendering Tags");
         self.render_tags_pages();
-
-        // log::info!("Printing Collections Map");
-        // log::info!("{:?}", &self.collection_map);
     }
 }
