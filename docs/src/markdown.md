@@ -1,17 +1,16 @@
 ---
-title: Hello from the posts!
-description: just a small feature demonstration of the capabilites of this blog
-wip: true
+title: Markdown Guide
+description: See how Saaru uses Markdown!
+wip: false
 template: post.jinja
 tags:
-  - look
-  - special_tag
+  - documentation
+  - saaru
 collections:
-  - posts
-  - new_collection
+  - user
 ---
 
-[Link to page 2](/index2)
+See exactly what markdown you can use and where!
 
 # An h1 header
 
@@ -168,14 +167,12 @@ A horizontal rule follows.
 
 What about footnotes?[^1]
 
+> ![IDEA]
+> Admonitions? really?
+
 And images can be specified like so:
 
-
-
 ![example image "this is nice"](https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.XBuTOZYvrMgYELZ9HzJNZQHaEK%26pid%3DApi&f=1)
-
-
-  
 
 Inline math equation: $\omega = d\phi / dt$. Display
 math should get its own line like so:
@@ -190,11 +187,5 @@ What if I want to embed a video?
 Nice, isn't it?
 
 Here's to some good writing! :champagne: I'll see y'all around.
-
-== Adios! ==
-
-
-
-
 
 [^1]: footnotes are fun!

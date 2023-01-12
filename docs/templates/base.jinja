@@ -63,14 +63,24 @@
             font-size: 1em;
             font-family: monospace;
         }
+
+        .footer {
+            color: grey;
+        }
+
+        .navbar {
+            color: grey;
+        }
     </style>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
 </head>
 
 <body>
     <main class="container">
+        {% include "menubar.jinja" %}
         {% block main_template_content %}
         {% endblock %}
+        {% include "footer.jinja" %}
     </main>
     <script>hljs.highlightAll();</script>
 </body>

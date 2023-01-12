@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
 use std::collections::HashMap;
-use std::fs;
 use std::path::{Path, PathBuf};
+use std::{fs, io};
 
 // This is the main implementation struct for Saaru
 // TODO Derive clap parsing for this
@@ -51,10 +51,11 @@ impl SaaruArguments {
 struct FrontMatter {
     title: String,
     description: String,
-    tags: Vec<String>,
+    date: Option<String>,
+    tags: Option<Vec<String>>,
+    collections: Option<Vec<String>>,
     wip: Option<bool>,
     template: Option<String>,
-    collections: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -109,6 +110,21 @@ const LOGO: &str = r"
 A Static Site Generator for Fun and Profit
 ";
 
+/// Copy files from source to destination recursively.
+pub fn copy_recursively(source: impl AsRef<Path>, destination: impl AsRef<Path>) -> io::Result<()> {
+    fs::create_dir_all(&destination)?;
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let filetype = entry.file_type()?;
+        if filetype.is_dir() {
+            copy_recursively(entry.path(), destination.as_ref().join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), destination.as_ref().join(entry.file_name()))?;
+        }
+    }
+    Ok(())
+}
+
 impl SaaruInstance<'_> {
     /*
      * functions for Saaru
@@ -145,7 +161,9 @@ impl SaaruInstance<'_> {
     pub fn validate_source_structure(&self) -> bool {
         // Check if the source directory structure is as it's supposed to be
         // TODO later validate for the right files existing
-        self.arguments.source_dir.exists() && self.arguments.template_dir.exists()
+        self.arguments.source_dir.exists()
+            && self.arguments.template_dir.exists()
+            && self.arguments.static_dir.exists()
     }
 
     pub fn set_template_environment(&mut self) {
@@ -220,15 +238,24 @@ impl SaaruInstance<'_> {
         let collection_copy = aug_fm_struct.clone();
 
         // Add the file to the tag map
-        for tag in &tag_copy.frontmatter.tags {
-            self.tag_map
-                .entry(tag.to_string())
-                .and_modify(|list| list.push(ThinAugmentedFrontMatter::from(tag_copy.clone())))
-                .or_insert({
-                    let mut new: Vec<ThinAugmentedFrontMatter> = Vec::with_capacity(1000);
-                    new.push(ThinAugmentedFrontMatter::from(tag_copy.clone()));
-                    new
-                });
+        match &tag_copy.frontmatter.tags {
+            Some(tag_list) => {
+                for tag in tag_list {
+                    self.tag_map
+                        .entry(tag.to_string())
+                        .and_modify(|list| {
+                            list.push(ThinAugmentedFrontMatter::from(tag_copy.clone()))
+                        })
+                        .or_insert({
+                            let mut new: Vec<ThinAugmentedFrontMatter> = Vec::with_capacity(1000);
+                            new.push(ThinAugmentedFrontMatter::from(tag_copy.clone()));
+                            new
+                        });
+                }
+            }
+            None => {
+                log::warn!("No Tags!");
+            }
         }
 
         // Check if there's a collection defined for that page
@@ -271,7 +298,9 @@ impl SaaruInstance<'_> {
         let rendered_template = match &input_aug_frontmatter.frontmatter.template {
             Some(template_name) => self.template_env.get_template(&template_name).unwrap(),
             None => {
-                panic!("Could not find template")
+                // TODO make sure you can use a default template
+                // FIXME this is not the default template! take it in JSON!
+                self.template_env.get_template("post.jinja").unwrap()
             }
         };
 
@@ -358,6 +387,29 @@ impl SaaruInstance<'_> {
         }
     }
 
+    pub fn copy_static_folder(&self) {
+        // Copy over the static folder from the source directory to the
+        // build directory
+        let source_path = &self.arguments.static_dir;
+        let destination_path = &self.arguments.build_dir;
+        log::info!(
+            "Beginnning static folder copy from {:?} to {:?}",
+            source_path,
+            destination_path
+        );
+        copy_recursively(source_path, destination_path).unwrap();
+    }
+
+    pub fn live_reload(&mut self) {
+        // Live Reload
+        // Run a watcher thread and a new renderer thread
+        // They'll talk via a channel, sending over the name of the file that got changed
+        // No live reload for anything that's a template (i.e. `.jinja`), you'll need a full reload for that
+        // Watcher thread finds out which file
+        // re-render all the files for tags and collections
+        unimplemented!("Not yet, bozo");
+    }
+
     pub fn alternate_render_pipeline(&mut self) {
         // Full pipeline for rendering again
         // Stage 0: Validate the submitted folder structur
@@ -398,5 +450,12 @@ impl SaaruInstance<'_> {
 
         log::info!("Rendering Tags");
         self.render_tags_pages();
+
+        // TODO Render the RSS Feed
+        // log::info!("Rendering RSS Feed")
+
+        // Copy over the static folder
+        log::info!("Copying the static folder... ");
+        self.copy_static_folder();
     }
 }

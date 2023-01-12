@@ -38,7 +38,14 @@ example_source/
 │   └── posts
 │       ├── index.md
 │       └── post1.md
-└── templates
+│── templates
+│   ├── base.jinja
+│   ├── post_index.jinja
+│   ├── post.jinja
+│   ├── post_new.jinja
+│   ├── tags.jinja
+│   └── tags_page.jinja
+│── templates
     ├── base.jinja
     ├── post_index.jinja
     ├── post.jinja
@@ -78,9 +85,10 @@ SAARU -> StAtic Almanac Renderer and Unifier
 - [ ] Fix the error handling
 - [ ] [docs] Specify what the minimum supported file structure for opinionated mode is
 - [ ] Refactor!
-- [ ] Make the Saaru Docs a Saaru-generated website
-- [ ] Make all frontmatter optional
-- [ ] Static Directory Support (Minify CSS and Build, copy over all other static files)
+- [WIP] Make the Saaru Docs a Saaru-generated website
+- [x] Make all frontmatter optional (only `title` and `description` are now mandatory)
+- [x] Static Directory Support (~~Minify CSS and Build~~ copy over all ~~other~~ static files)
+
 - [ ] Custom Info JSON File - for defaults, fixed params, etc (Perhaps a `.saaru.json`)
 
   ```json
@@ -101,6 +109,14 @@ SAARU -> StAtic Almanac Renderer and Unifier
 - [ ] Web server + Live reload?
 - [ ] tree-shaken rendering, only re-render what's changed?
 - [ ] Merkle Tree based hash checks?
+
+## Refactor
+
+Refactor into implementers for `Parser` and `Renderer` traits, so that it's pluggable
+
+## Live Reload
+
+Hide this behind a cargo flag, because of heavy dependencies.
 
 ## Data Merge Architecture
 
@@ -157,3 +173,25 @@ In this architecture, there are two passes that go into rendering files - this i
    - Iterate through the entire hashmap, passing the collections available as a part of the context
    - Render the markdown present and write it to file
    - Now the entire set of templates has access to the data acquired in the merge.
+
+## The Frontmatter passed to every file
+
+Every file gets the following frontmatter passed into it ->
+
+```rust
+let rendered_final_html = rendered_template
+.render(context!(
+      frontmatter => input_aug_frontmatter.frontmatter,
+      postcontent => html_output,
+      tags => &self.tag_map,
+      collections => &self.collection_map,
+      ))
+.unwrap();
+```
+
+- `frontmatter` -> The frontmatter for the post
+- `postcontent` -> The parsed markdown and HTML for the post
+- `tags` -> The tags sitewide, structured as `Vec<tag: String, Vec<Post: String>>`
+- `collections` -> The collectiojns sitewide, structured as `Vec<collection: String, Vec<Post: String>>`
+
+Feel free to use any of these in your pages!
