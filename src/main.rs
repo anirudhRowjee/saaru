@@ -1,9 +1,13 @@
-use crate::saaru::{SaaruArguments, SaaruInstance};
+use crate::arguments::SaaruArguments;
+use crate::saaru::SaaruInstance;
 use clap::Parser;
 use std::path::PathBuf;
 use std::time;
 
+mod arguments;
+mod frontmatter;
 mod saaru;
+mod utils;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -27,5 +31,5 @@ fn main() {
     instance.set_template_environment();
     instance.alternate_render_pipeline();
     let end = time::Instant::now();
-    log::info!("Total Time Taken -> {:?}", end - start);
+    println!("Total Time Taken -> {:?}", end - start);
 }

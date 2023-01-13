@@ -84,7 +84,7 @@ SAARU -> StAtic Almanac Renderer and Unifier
 
 - [ ] Fix the error handling
 - [ ] [docs] Specify what the minimum supported file structure for opinionated mode is
-- [ ] Refactor!
+- [x] Refactor!
 - [WIP] Make the Saaru Docs a Saaru-generated website
 - [x] Make all frontmatter optional (only `title` and `description` are now mandatory)
 - [x] Static Directory Support (~~Minify CSS and Build~~ copy over all ~~other~~ static files)

@@ -1,90 +1,18 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use gray_matter::{engine::YAML, Matter};
 use minijinja::{context, Environment, Source};
-use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
 use std::collections::HashMap;
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::{fs, io};
+
+use crate::arguments::SaaruArguments;
+use crate::frontmatter::{AugmentedFrontMatter, FrontMatter, ThinAugmentedFrontMatter};
+use crate::utils::copy_recursively;
 
 // This is the main implementation struct for Saaru
 // TODO Derive clap parsing for this
-#[derive(Debug)]
-pub struct SaaruArguments {
-    base_dir: PathBuf,
-    template_dir: PathBuf,
-    source_dir: PathBuf,
-    static_dir: PathBuf,
-    pub build_dir: PathBuf,
-}
-
-impl SaaruArguments {
-    pub fn new(mut base_dir: PathBuf) -> Self {
-        log::info!("Initializing Arguments");
-
-        base_dir = std::fs::canonicalize(base_dir).unwrap();
-
-        let mut template_path = PathBuf::from(&base_dir);
-        let mut static_path = PathBuf::from(&base_dir);
-        let mut content_path = PathBuf::from(&base_dir);
-        let mut build_path = PathBuf::from(&base_dir);
-
-        template_path.push("templates/");
-        static_path.push("static");
-        content_path.push("src");
-        build_path.push("build");
-
-        log::info!("Initalized Arguments from Base Path {:?}", &base_dir);
-
-        SaaruArguments {
-            base_dir,
-            template_dir: template_path,
-            source_dir: content_path,
-            static_dir: static_path,
-            build_dir: build_path,
-        }
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-struct FrontMatter {
-    title: String,
-    description: String,
-    date: Option<String>,
-    tags: Option<Vec<String>>,
-    collections: Option<Vec<String>>,
-    wip: Option<bool>,
-    template: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AugmentedFrontMatter {
-    frontmatter: FrontMatter,
-    source_path: String,
-    file_content: String,
-    write_path: String,
-    relative_build_path: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ThinAugmentedFrontMatter {
-    frontmatter: FrontMatter,
-    source_path: String,
-    write_path: String,
-    link: String,
-}
-
-impl From<AugmentedFrontMatter> for ThinAugmentedFrontMatter {
-    fn from(old: AugmentedFrontMatter) -> Self {
-        ThinAugmentedFrontMatter {
-            frontmatter: old.frontmatter,
-            source_path: old.source_path,
-            write_path: old.write_path,
-            link: old.relative_build_path,
-        }
-    }
-}
 
 // Runtime necessities of the Saaru application
 pub struct SaaruInstance<'a> {
@@ -109,21 +37,6 @@ const LOGO: &str = r"
 
 A Static Site Generator for Fun and Profit
 ";
-
-/// Copy files from source to destination recursively.
-pub fn copy_recursively(source: impl AsRef<Path>, destination: impl AsRef<Path>) -> io::Result<()> {
-    fs::create_dir_all(&destination)?;
-    for entry in fs::read_dir(source)? {
-        let entry = entry?;
-        let filetype = entry.file_type()?;
-        if filetype.is_dir() {
-            copy_recursively(entry.path(), destination.as_ref().join(entry.file_name()))?;
-        } else {
-            fs::copy(entry.path(), destination.as_ref().join(entry.file_name()))?;
-        }
-    }
-    Ok(())
-}
 
 impl SaaruInstance<'_> {
     /*
@@ -307,8 +220,7 @@ impl SaaruInstance<'_> {
         // Render the template
         let rendered_final_html = rendered_template
             .render(context!(
-                name => "Anirudh",
-                users => vec!["a", "b", "c"],
+                // TODO pass in all app information taken from JSON
                 frontmatter => input_aug_frontmatter.frontmatter,
                 postcontent => html_output,
                 tags => &self.tag_map,
@@ -381,7 +293,7 @@ impl SaaruInstance<'_> {
                 ))
                 .unwrap();
             self.write_html_to_file(
-                base_tags_path.join(PathBuf::from(&key)),
+                base_tags_path.join(PathBuf::from(format!("{}.html", key))),
                 tags_index_rendered_html,
             );
         }
