@@ -1,9 +1,6 @@
 use std::path::Path;
 use std::{fs, io};
 
-pub fn hello_world() {
-    println!("hello, world!");
-}
 
 // Copy files from source to destination recursively.
 pub fn copy_recursively(source: impl AsRef<Path>, destination: impl AsRef<Path>) -> io::Result<()> {

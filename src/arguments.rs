@@ -1,8 +1,6 @@
 use std::path::{Path, PathBuf};
 
-pub fn type_hello_world() {
-    println!("Hello world from types!")
-}
+
 
 #[derive(Debug)]
 pub struct SaaruArguments {
