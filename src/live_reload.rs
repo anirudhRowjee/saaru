@@ -1,7 +1,7 @@
 use crate::SaaruInstance;
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
+use std::sync::mpsc;
 use std::time;
-use std::{path::PathBuf, sync::mpsc};
 
 pub fn live_reload(instance: &mut SaaruInstance) {
     // Live Reload
@@ -10,7 +10,6 @@ pub fn live_reload(instance: &mut SaaruInstance) {
     // No live reload for anything that's a template (i.e. `.jinja`), you'll need a full reload for that
     // Watcher thread finds out which file
 
-    // TODO Refactor : implement full re-render for individual file
     // re-render all the files for tags and collections
     let (tx, rx) = mpsc::channel();
     let mut watcher = RecommendedWatcher::new(tx, Config::default()).unwrap();
@@ -34,32 +33,9 @@ pub fn live_reload(instance: &mut SaaruInstance) {
                             event.paths,
                             metadata
                         );
-
-                        // TODO Trigger a re-render for this specific file
                         log::info!("[LIVERELOAD] Re-processing file {:?}", &event.paths[0]);
-                        instance.preprocess_file_data(&event.paths[0]);
-
                         let start = time::Instant::now();
-
-                        let current_frontmatter = instance
-                            .frontmatter_map
-                            .get(&event.paths[0].display().to_string())
-                            .unwrap()
-                            .clone();
-                        log::info!(
-                            "[LIVERELOAD] Triggering HTML Conversion for file {:?}",
-                            &event.paths[0]
-                        );
-                        let html_content =
-                            instance.render_file_from_frontmatter(current_frontmatter.clone());
-                        log::info!(
-                            "[LIVERELOAD] Writing to Destination for file {:?}",
-                            &event.paths[0]
-                        );
-                        instance.write_html_to_file(
-                            PathBuf::from(&current_frontmatter.write_path),
-                            html_content,
-                        );
+                        instance.render_individual_file(&event.paths[0]);
                         let end = time::Instant::now();
                         log::info!("File {:?} re-rendered in {:?}", event.paths[0], end - start);
                     }
@@ -71,32 +47,9 @@ pub fn live_reload(instance: &mut SaaruInstance) {
                             event.paths,
                             metadata
                         );
-
-                        // TODO Trigger a re-render for this specific file
                         log::info!("[LIVERELOAD] Processing file {:?}", &event.paths[0]);
-                        instance.preprocess_file_data(&event.paths[0]);
-
                         let start = time::Instant::now();
-
-                        let current_frontmatter = instance
-                            .frontmatter_map
-                            .get(&event.paths[0].display().to_string())
-                            .unwrap()
-                            .clone();
-                        log::info!(
-                            "[LIVERELOAD] Triggering HTML Conversion for file {:?}",
-                            &event.paths[0]
-                        );
-                        let html_content =
-                            instance.render_file_from_frontmatter(current_frontmatter.clone());
-                        log::info!(
-                            "[LIVERELOAD] Writing to Destination for file {:?}",
-                            &event.paths[0]
-                        );
-                        instance.write_html_to_file(
-                            PathBuf::from(&current_frontmatter.write_path),
-                            html_content,
-                        );
+                        instance.render_individual_file(&event.paths[0]);
                         let end = time::Instant::now();
                         log::info!("File {:?} re-rendered in {:?}", event.paths[0], end - start);
                     }

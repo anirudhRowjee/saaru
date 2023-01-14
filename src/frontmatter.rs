@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
+// TODO Change this into a `serde::Value` to allow for arbitrary frontmatter
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FrontMatter {
     pub title: String,
@@ -9,6 +11,8 @@ pub struct FrontMatter {
     pub collections: Option<Vec<String>>,
     pub wip: Option<bool>,
     pub template: Option<String>,
+    pub link: Option<String>,
+    pub meta: Option<Value>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

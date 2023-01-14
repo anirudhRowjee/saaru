@@ -191,17 +191,17 @@ impl SaaruInstance<'_> {
         self.frontmatter_map.insert(filename_str, aug_fm_struct);
     }
 
-    pub fn convert_markdown_to_html(&self, markdown: String) -> String {
-        let parser = markdown_to_html(&markdown, &self.markdown_options);
+    pub fn convert_markdown_to_html(&self, markdown: &String) -> String {
+        let parser = markdown_to_html(markdown, &self.markdown_options);
         parser
     }
 
     pub fn render_file_from_frontmatter(
         &self,
-        input_aug_frontmatter: AugmentedFrontMatter,
+        input_aug_frontmatter: &AugmentedFrontMatter,
     ) -> String {
         // Conver the Markdown to HTML
-        let html_output = self.convert_markdown_to_html(input_aug_frontmatter.file_content);
+        let html_output = self.convert_markdown_to_html(&input_aug_frontmatter.file_content);
 
         // Fetch the Template
         let rendered_template = match &input_aug_frontmatter.frontmatter.template {
@@ -254,11 +254,28 @@ impl SaaruInstance<'_> {
             // Key => Path
             // Value => AugmentedFrontMatter
             log::info!("Rendering file {:?} to Path {:?}", key, val.write_path);
-
-            let new_val = val.clone();
-            let html_content = self.render_file_from_frontmatter(new_val);
+            let html_content = self.render_file_from_frontmatter(&val);
             self.write_html_to_file(PathBuf::from(&val.write_path), html_content);
         }
+    }
+
+    pub fn render_individual_file(&mut self, path: &PathBuf) {
+        log::info!("[LIVERELOAD] Processing file {:?}", path);
+        self.preprocess_file_data(&path);
+
+        let current_frontmatter = self
+            .frontmatter_map
+            .get(&path.display().to_string())
+            .unwrap()
+            .clone();
+        log::info!(
+            "[LIVERELOAD] Triggering HTML Conversion for file {:?}",
+            path
+        );
+        let html_content = self.render_file_from_frontmatter(&current_frontmatter);
+
+        log::info!("[LIVERELOAD] Writing to Destination for file {:?}", path);
+        self.write_html_to_file(PathBuf::from(&current_frontmatter.write_path), html_content);
     }
 
     fn render_tags_pages(&self) {
@@ -295,7 +312,7 @@ impl SaaruInstance<'_> {
         }
     }
 
-    pub fn copy_static_folder(&self) {
+    fn copy_static_folder(&self) {
         // Copy over the static folder from the source directory to the
         // build directory
         let source_path = &self.arguments.static_dir;
@@ -329,9 +346,13 @@ impl SaaruInstance<'_> {
         log::info!("[LOG] Recursively Preprocessing All Files");
         for dir in WalkDir::new(&self.arguments.source_dir) {
             let entry = dir.unwrap();
-            let metadata = fs::metadata(entry.path()).unwrap();
-            // Skip if directory
-            if metadata.is_dir() {
+            let local_path = entry.path();
+            let metadata = fs::metadata(&local_path).unwrap();
+
+            // Skip if directory or isn't markdown
+            if metadata.is_dir()
+                || local_path.extension().unwrap().to_str().unwrap() != &"md".to_string()
+            {
                 continue;
             }
 

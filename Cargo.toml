@@ -16,3 +16,4 @@ simple_logger = "4.0.0"
 clap = { version = "4.0.32", features = ["derive"]}
 comrak = "0.15.0"
 notify = { version = "5.0.0", features = ["serde"] }
+serde_json = "1.0.91"
