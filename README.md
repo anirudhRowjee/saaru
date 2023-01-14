@@ -1,7 +1,3 @@
-# Saaru
-
-Saaru is now an SSG Written in Rust. It uses Jinja Templates to render, along with Markdown to maintain content.
-
 ```
    ____
   / __/__ ____ _______ __
@@ -11,52 +7,54 @@ Saaru is now an SSG Written in Rust. It uses Jinja Templates to render, along wi
 A Static Site Generator for Fun and Profit
 ```
 
+# Saaru
+
+Saaru is an opinonated Static Site Generator written in Rust. It uses Markdown and Jinja to render pure HTML/CSS Websites from your markdown + jinja source.
+
 ## Usage
 
 Running the program is simple. Once you have the repository cloned, you can use the following command to check oout the example site ->
 
 ```bash
-$ cargo run -- --base_path <your example_source directory>
+$ cargo run --release -- --base_path <your example_source directory>
 ```
 
-Feel free to base your site off of the `example_source` directory, which already has a bunch of templates pre-defined for you. It's got my name in there, but TODO Refactor soon enough.
+Feel free to base your site off of the `docs` directory, which already has a bunch of templates pre-defined for you. It's got my name in there, but TODO Refactor soon enough.
 
 ```bash
-$ cargo run -- --base_path ./example_source
+$ cargo run --release -- --base_path ./example_source
 ```
 
-If nothing's wrong, your entire site as HTML and CSS will present itself in the `./example_source/build` directory. From then onwards, all you need to do is launch a web server with `./example_source/build` as the source such as [this package](https://www.npmjs.com/package/serve).
+If nothing's wrong, your entire site as HTML and CSS will present itself in the `./docs/build` directory. From then onwards, all you need to do is launch a web server with `./docs/build` as the source such as [this package](https://www.npmjs.com/package/serve).
 
 As of right now, Saaru is a little opinioniated on how exactly you should structure your site. As of right now, it boils down to having a folder with the following structure =>
 
 ```
-example_source/
+
+docs/
 ├── src
-│   ├── index2.md
 │   ├── index.md
-│   ├── new_index.md
-│   └── posts
-│       ├── index.md
-│       └── post1.md
-│── templates
-│   ├── base.jinja
-│   ├── post_index.jinja
-│   ├── post.jinja
-│   ├── post_new.jinja
-│   ├── tags.jinja
-│   └── tags_page.jinja
-│── templates
+│   ├── internals
+│   │   ├── collections.md
+│   │   ├── deep_data_merge.md
+│   │   └── tags.md
+│   └── markdown.md
+└── templates
     ├── base.jinja
+    ├── footer.jinja
+    ├── index.jinja
+    ├── menubar.jinja
     ├── post_index.jinja
     ├── post.jinja
     ├── post_new.jinja
     ├── tags.jinja
     └── tags_page.jinja
+
 ```
 
 It's possible to have an abitrary configuration of files in the `src` folder, so long as you've got each and every markdown document with the right frontmatter.
 
-Here's the absolute minimum frontmatter. (This will be iterated on, but as of now - ) There must be **A MINIMUM OF ONE TAG PER POST**.
+Here's the absolute minimum frontmatter. ~(This will be iterated on, but as of now - ) There must be **A MINIMUM OF ONE TAG PER POST**.~
 
 ```yaml
 ---
@@ -72,6 +70,16 @@ collections:
 ---
 ```
 
+## Live Reload
+
+As of right now, Live reload is enabled by default, and is hidden behind a command line flag.
+
+```bash
+$ cargo run --release -- --base_path ./example_source --live-reload
+```
+
+As and when you make a change to a file and save the file, Saaru will re-render that file into the build directory. On your browser (or if your web server supports watching the file system, do nothing - ), hit refresh to see your content updated.
+
 ### Etymology
 
 Saaru means Rasam, which is a type of spicy, thin lentil soup, often eaten with rice. This project is called Saaru because I like Saaru very much.
@@ -84,12 +92,10 @@ SAARU -> StAtic Almanac Renderer and Unifier
 
 - [ ] Fix the error handling
 - [ ] [docs] Specify what the minimum supported file structure for opinionated mode is
-- [x] Refactor!
-- [WIP] Make the Saaru Docs a Saaru-generated website
-- [x] Make all frontmatter optional (only `title` and `description` are now mandatory)
-- [x] Static Directory Support (~~Minify CSS and Build~~ copy over all ~~other~~ static files)
-
+- [ ] Parallelized rendering
+- [ ] Web Server
 - [ ] Custom Info JSON File - for defaults, fixed params, etc (Perhaps a `.saaru.json`)
+- [ ] Delete Build Directory on re-render
 
   ```json
   {
@@ -103,20 +109,14 @@ SAARU -> StAtic Almanac Renderer and Unifier
   }
   ```
 
-- [ ] Run Pre-flight checks (check if templates dir exists, check if source dir exists, etc)
-- [ ] External CSS / Custom CSS injection
-- [ ] Parallelized rendering
-- [ ] Web server + Live reload?
-- [ ] tree-shaken rendering, only re-render what's changed?
-- [ ] Merkle Tree based hash checks?
-
-## Refactor
-
-Refactor into implementers for `Parser` and `Renderer` traits, so that it's pluggable
-
-## Live Reload
-
-Hide this behind a cargo flag, because of heavy dependencies.
+- [x] tree-shaken rendering, only re-render what's changed?
+- [x] Live reload?
+- [x] Run Pre-flight checks (check if templates dir exists, check if source dir exists, etc)
+- [x] External CSS / Custom CSS injection
+- [x] Refactor!
+- [WIP] Make the Saaru Docs a Saaru-generated website
+- [x] Make all frontmatter optional (only `title` and `description` are now mandatory)
+- [x] Static Directory Support (~~Minify CSS and Build~~ copy over all ~~other~~ static files)
 
 ## Data Merge Architecture
 

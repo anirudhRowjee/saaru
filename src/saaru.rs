@@ -12,7 +12,6 @@ use crate::frontmatter::{AugmentedFrontMatter, FrontMatter, ThinAugmentedFrontMa
 use crate::utils::copy_recursively;
 
 // This is the main implementation struct for Saaru
-// TODO Derive clap parsing for this
 
 // Runtime necessities of the Saaru application
 pub struct SaaruInstance<'a> {
@@ -21,12 +20,12 @@ pub struct SaaruInstance<'a> {
     // TODO Currently set to frontmatter YAML, see if you need to change this Via a config file later
     pub frontmatter_parser: Matter<YAML>,
     markdown_options: ComrakOptions,
-    arguments: SaaruArguments,
+    pub arguments: SaaruArguments,
 
     // Runtime Data
     collection_map: HashMap<String, Vec<ThinAugmentedFrontMatter>>,
     tag_map: HashMap<String, Vec<ThinAugmentedFrontMatter>>,
-    frontmatter_map: HashMap<String, AugmentedFrontMatter>,
+    pub frontmatter_map: HashMap<String, AugmentedFrontMatter>,
 }
 
 const LOGO: &str = r"
@@ -80,7 +79,6 @@ impl SaaruInstance<'_> {
     }
 
     pub fn set_template_environment(&mut self) {
-        // TODO Replace this with environment which will read source
         self.template_env = Environment::new();
         self.template_env
             .set_source(Source::from_path(&self.arguments.template_dir));
@@ -102,7 +100,6 @@ impl SaaruInstance<'_> {
         write_path.set_extension("html");
 
         // Append the write path into the base directory
-        // TODO Keep non-prefixed segment for relative links
         let final_write_path = self.arguments.build_dir.join(&write_path);
         final_write_path
     }
@@ -142,7 +139,6 @@ impl SaaruInstance<'_> {
             file_content: cleaned_markdown.clone(),
             frontmatter: parsed_frontmatter.clone(),
             source_path: filename_str.clone(),
-            // HACK don't regenerate here, take from caller
             write_path: write_path.display().to_string(),
             relative_build_path: relative_build_path.display().to_string(),
         };
@@ -160,14 +156,14 @@ impl SaaruInstance<'_> {
                             list.push(ThinAugmentedFrontMatter::from(tag_copy.clone()))
                         })
                         .or_insert({
-                            let mut new: Vec<ThinAugmentedFrontMatter> = Vec::with_capacity(1000);
+                            let mut new: Vec<ThinAugmentedFrontMatter> = Vec::with_capacity(100);
                             new.push(ThinAugmentedFrontMatter::from(tag_copy.clone()));
                             new
                         });
                 }
             }
             None => {
-                log::warn!("No Tags!");
+                log::warn!("No Tags found in file {:?}", &filename_str);
             }
         }
 
@@ -181,14 +177,14 @@ impl SaaruInstance<'_> {
                             list.push(ThinAugmentedFrontMatter::from(collection_copy.clone()))
                         })
                         .or_insert({
-                            let mut new: Vec<ThinAugmentedFrontMatter> = Vec::with_capacity(1000);
+                            let mut new: Vec<ThinAugmentedFrontMatter> = Vec::with_capacity(100);
                             new.push(ThinAugmentedFrontMatter::from(collection_copy.clone()));
                             new
                         });
                 }
             }
             None => {
-                log::warn!("No Collections!");
+                log::warn!("No Collections found in file {:?}", &filename_str);
             }
         }
 
@@ -312,16 +308,6 @@ impl SaaruInstance<'_> {
         copy_recursively(source_path, destination_path).unwrap();
     }
 
-    pub fn live_reload(&mut self) {
-        // Live Reload
-        // Run a watcher thread and a new renderer thread
-        // They'll talk via a channel, sending over the name of the file that got changed
-        // No live reload for anything that's a template (i.e. `.jinja`), you'll need a full reload for that
-        // Watcher thread finds out which file
-        // re-render all the files for tags and collections
-        unimplemented!("Not yet, bozo");
-    }
-
     pub fn alternate_render_pipeline(&mut self) {
         // Full pipeline for rendering again
         // Stage 0: Validate the submitted folder structur
@@ -350,21 +336,16 @@ impl SaaruInstance<'_> {
             }
 
             log::info!("Processing File {:?}", entry);
-            let entry_path = entry.path();
-
             // TODO If the file is markdown, preprocess, else just copy
-            self.preprocess_file_data(entry_path);
+            self.preprocess_file_data(entry.path());
             log::info!("Finished Processing File {:?}", entry);
         }
 
-        log::info!("Rendering Stage");
+        log::info!("Rendering All Files...");
         self.render_all_files();
 
         log::info!("Rendering Tags");
         self.render_tags_pages();
-
-        // TODO Render the RSS Feed
-        // log::info!("Rendering RSS Feed")
 
         // Copy over the static folder
         log::info!("Copying the static folder... ");

@@ -6,6 +6,7 @@ use std::time;
 
 mod arguments;
 mod frontmatter;
+mod live_reload;
 mod saaru;
 mod utils;
 
@@ -15,6 +16,9 @@ struct Arguments {
     /// This is the base path
     #[arg(short, long)]
     base_path: PathBuf,
+
+    #[arg(short, long)]
+    live_reload: bool,
 }
 
 fn main() {
@@ -32,4 +36,10 @@ fn main() {
     instance.alternate_render_pipeline();
     let end = time::Instant::now();
     println!("Total Time Taken -> {:?}", end - start);
+
+    // TODO hide this behind a feature flag
+    if commandline_arguments.live_reload {
+        log::info!("Triggering live reload...");
+        live_reload::live_reload(&mut instance);
+    }
 }
