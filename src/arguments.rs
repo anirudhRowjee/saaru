@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use serde_json::Value;
+use std::{fs::read_to_string, path::PathBuf};
 
 #[derive(Debug)]
 pub struct SaaruArguments {
@@ -7,6 +8,7 @@ pub struct SaaruArguments {
     pub source_dir: PathBuf,
     pub static_dir: PathBuf,
     pub build_dir: PathBuf,
+    pub json_content: Value,
 }
 
 impl SaaruArguments {
@@ -19,13 +21,40 @@ impl SaaruArguments {
         let mut static_path = PathBuf::from(&base_dir);
         let mut content_path = PathBuf::from(&base_dir);
         let mut build_path = PathBuf::from(&base_dir);
+        let json_path = PathBuf::from(&base_dir).join(".saaru.json");
 
         template_path.push("templates/");
         static_path.push("static");
         content_path.push("src");
         build_path.push("build");
-
         log::info!("Initalized Arguments from Base Path {:?}", &base_dir);
+
+        // Read the JSON
+        // TODO Validate this
+        let raw_json_content = match read_to_string(json_path) {
+            Ok(content) => serde_json::from_str(&content).unwrap(),
+            Err(_) => {
+                // TODO better error handling here - check for another issue that
+                // probably isn't the "didn't find file" error
+                log::error!("Couldn't find .saaru.json in {:?}", &base_dir);
+                log::warn!("Using default values!");
+                serde_json::json!({
+                  "metadata": {
+                    "author": {
+                      "name": "Author",
+                      "one_line_desc": "hello, world!",
+                      "twitter": "twitter.com/username",
+                      "github": "github.com/username",
+                    },
+                    "templates": {
+                        "default": "post.json",
+                    }
+                  }
+                })
+            }
+        };
+        let json_content = raw_json_content;
+        log::info!("Finished Reading JSON Content -> {:?}", json_content);
 
         SaaruArguments {
             base_dir,
@@ -33,6 +62,7 @@ impl SaaruArguments {
             source_dir: content_path,
             static_dir: static_path,
             build_dir: build_path,
+            json_content,
         }
     }
 }

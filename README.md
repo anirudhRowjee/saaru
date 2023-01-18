@@ -94,9 +94,8 @@ SAARU -> StAtic Almanac Renderer and Unifier
 - [ ] [docs] Specify what the minimum supported file structure for opinionated mode is
 - [ ] Parallelized rendering
 - [ ] Web Server
-- [ ] Custom Info JSON File - for defaults, fixed params, etc (Perhaps a `.saaru.json`)
 - [ ] Delete Build Directory on re-render
-
+- [x] Custom Info JSON File - for defaults, fixed params, etc (Perhaps a `.saaru.json`)
   ```json
   {
     "default_dir": "abc",
@@ -108,7 +107,6 @@ SAARU -> StAtic Almanac Renderer and Unifier
     }
   }
   ```
-
 - [x] tree-shaken rendering, only re-render what's changed?
 - [x] Live reload?
 - [x] Run Pre-flight checks (check if templates dir exists, check if source dir exists, etc)
@@ -192,6 +190,26 @@ let rendered_final_html = rendered_template
 - `frontmatter` -> The frontmatter for the post
 - `postcontent` -> The parsed markdown and HTML for the post
 - `tags` -> The tags sitewide, structured as `Vec<tag: String, Vec<Post: String>>`
-- `collections` -> The collectiojns sitewide, structured as `Vec<collection: String, Vec<Post: String>>`
+- `collections` -> The collections sitewide, structured as `Vec<collection: String, Vec<Post: String>>`
 
 Feel free to use any of these in your pages!
+
+## Default Arguments
+
+this is the default JSON used if there's no `.saaru.json` present in the base folder. The field `metadata.templates.default` field is compulsory, or else Saaru will look for a `post.jinja` in your template environment.
+
+```json
+{
+  "metadata": {
+    "author": {
+      "name": "Author",
+      "one_line_desc": "hello, world!",
+      "twitter": "twitter.com/username",
+      "github": "github.com/username"
+    },
+    "templates": {
+      "default": "post.jinja"
+    }
+  }
+}
+```

@@ -28,6 +28,7 @@ fn main() {
     let commandline_arguments = Arguments::parse();
     log::info!("Command Line Arguments -> {:?}", &commandline_arguments);
 
+    // Expect to see a `.saaru.json` file here in the base path
     let args = SaaruArguments::new(commandline_arguments.base_path);
     let mut instance = SaaruInstance::new(args);
 

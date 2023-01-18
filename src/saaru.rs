@@ -21,11 +21,11 @@ pub struct SaaruInstance<'a> {
     pub frontmatter_parser: Matter<YAML>,
     markdown_options: ComrakOptions,
     pub arguments: SaaruArguments,
-
     // Runtime Data
     collection_map: HashMap<String, Vec<ThinAugmentedFrontMatter>>,
     tag_map: HashMap<String, Vec<ThinAugmentedFrontMatter>>,
     pub frontmatter_map: HashMap<String, AugmentedFrontMatter>,
+    default_template: String,
 }
 
 const LOGO: &str = r"
@@ -57,6 +57,12 @@ impl SaaruInstance<'_> {
         options.extension.description_lists = true;
         // options.extension.superscript = true;
 
+        let default_template = args.json_content["metadata"]["templates"]["default"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        log::info!("Default Jinja Template -> {:?}", &default_template);
+
         SaaruInstance {
             template_env: Environment::new(),
             frontmatter_parser: Matter::new(),
@@ -67,6 +73,7 @@ impl SaaruInstance<'_> {
             collection_map: HashMap::new(),
             tag_map: HashMap::new(),
             frontmatter_map: HashMap::new(),
+            default_template,
         }
     }
 
@@ -209,18 +216,20 @@ impl SaaruInstance<'_> {
             None => {
                 // TODO make sure you can use a default template
                 // FIXME this is not the default template! take it in JSON!
-                self.template_env.get_template("post.jinja").unwrap()
+                self.template_env
+                    .get_template(&self.default_template)
+                    .unwrap()
             }
         };
 
         // Render the template
         let rendered_final_html = rendered_template
             .render(context!(
-                // TODO pass in all app information taken from JSON
                 frontmatter => input_aug_frontmatter.frontmatter,
                 postcontent => html_output,
                 tags => &self.tag_map,
                 collections => &self.collection_map,
+                json => &self.arguments.json_content
             ))
             .unwrap();
 
@@ -339,7 +348,6 @@ impl SaaruInstance<'_> {
         log::info!("[PREFLIGHT] Checking for Build Directory");
         match fs::create_dir(&self.arguments.build_dir) {
             Ok(_) => log::info!("Build Directory Created Successfully"),
-            // TODO better error handling
             Err(_) => log::warn!("Build Directory Already Exists!"),
         };
 
@@ -348,27 +356,20 @@ impl SaaruInstance<'_> {
             let entry = dir.unwrap();
             let local_path = entry.path();
             let metadata = fs::metadata(&local_path).unwrap();
-
-            // Skip if directory or isn't markdown
             if metadata.is_dir()
                 || local_path.extension().unwrap().to_str().unwrap() != &"md".to_string()
             {
                 continue;
             }
-
             log::info!("Processing File {:?}", entry);
-            // TODO If the file is markdown, preprocess, else just copy
             self.preprocess_file_data(entry.path());
             log::info!("Finished Processing File {:?}", entry);
         }
 
         log::info!("Rendering All Files...");
         self.render_all_files();
-
         log::info!("Rendering Tags");
         self.render_tags_pages();
-
-        // Copy over the static folder
         log::info!("Copying the static folder... ");
         self.copy_static_folder();
     }

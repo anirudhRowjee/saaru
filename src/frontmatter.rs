@@ -1,11 +1,10 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-// TODO Change this into a `serde::Value` to allow for arbitrary frontmatter
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FrontMatter {
-    pub title: String,
-    pub description: String,
+    pub title: Option<String>,
+    pub description: Option<String>,
     pub date: Option<String>,
     pub tags: Option<Vec<String>>,
     pub collections: Option<Vec<String>>,
