@@ -1,0 +1,13 @@
+{
+  "metadata": {
+    "author": {
+      "name": "Author",
+      "one_line_desc": "hello, world!",
+      "twitter": "twitter.com/username",
+      "github": "github.com/username"
+    },
+    "templates": {
+      "default": "post.jinja"
+    }
+  }
+}

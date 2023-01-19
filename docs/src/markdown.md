@@ -7,7 +7,7 @@ tags:
   - documentation
   - saaru
 collections:
-  - user
+  - get_started
 ---
 
 See exactly what markdown you can use and where!
