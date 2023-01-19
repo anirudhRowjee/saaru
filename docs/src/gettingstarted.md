@@ -27,7 +27,7 @@ Use these commands to generate the necessary folder structure -
 
 ```bash
 $ mkdir -p my_new_website/{src,static,templates}
-$ touch -p my_new_website/{src/hello_world.md,templates/{base,tags,tags_page}.jinja}
+$ touch my_new_website/{src/hello_world.md,templates/{base,tags,tags_page}.jinja,.saaru.json}
 ```
 
 ```lisp
@@ -142,7 +142,7 @@ Once you're done doing this, head over to the [usage](/usage) section of the sit
 2. Run the following -
 
 ```bash
-$ cargo run --release -- --base_path <path to my_new_website>
+$ cargo run --release -- --base-path <path to my_new_website>
 ```
 
 3. Your website should now be in `<path to my_new_website>/build/`.
