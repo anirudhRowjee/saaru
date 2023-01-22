@@ -1,6 +1,6 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use gray_matter::{engine::YAML, Matter};
-use minijinja::{context, Environment, Source};
+use minijinja::{context, value::Value, Environment, Source};
 use walkdir::WalkDir;
 
 use std::collections::HashMap;
@@ -25,7 +25,10 @@ pub struct SaaruInstance<'a> {
     collection_map: HashMap<String, Vec<ThinAugmentedFrontMatter>>,
     tag_map: HashMap<String, Vec<ThinAugmentedFrontMatter>>,
     pub frontmatter_map: HashMap<String, AugmentedFrontMatter>,
+    // Keep this default template
     default_template: String,
+    // serialize and generate the default context ahead of time to have faster renders
+    base_context: Value,
 }
 
 const LOGO: &str = r"
@@ -73,6 +76,7 @@ impl SaaruInstance<'_> {
             collection_map: HashMap::new(),
             tag_map: HashMap::new(),
             frontmatter_map: HashMap::new(),
+            base_context: context!(),
             default_template,
         }
     }
@@ -213,13 +217,10 @@ impl SaaruInstance<'_> {
         // Fetch the Template
         let rendered_template = match &input_aug_frontmatter.frontmatter.template {
             Some(template_name) => self.template_env.get_template(&template_name).unwrap(),
-            None => {
-                // TODO make sure you can use a default template
-                // FIXME this is not the default template! take it in JSON!
-                self.template_env
-                    .get_template(&self.default_template)
-                    .unwrap()
-            }
+            None => self
+                .template_env
+                .get_template(&self.default_template)
+                .unwrap(),
         };
 
         // Render the template
@@ -227,9 +228,7 @@ impl SaaruInstance<'_> {
             .render(context!(
                 frontmatter => input_aug_frontmatter.frontmatter,
                 postcontent => html_output,
-                tags => &self.tag_map,
-                collections => &self.collection_map,
-                json => &self.arguments.json_content
+                base => &self.base_context
             ))
             .unwrap();
 
@@ -289,7 +288,6 @@ impl SaaruInstance<'_> {
 
     fn render_tags_pages(&self) {
         // A function to render all pages for tags
-        // TODO Document that it's necessary to have these templates
         let tag_index_template = self.template_env.get_template("tags.jinja").unwrap();
 
         let tag_individual_template = self.template_env.get_template("tags_page.jinja").unwrap();
@@ -299,8 +297,7 @@ impl SaaruInstance<'_> {
         // Render the index page
         let tags_index_rendered_html = tag_index_template
             .render(context!(
-                tags => &self.tag_map,
-                collections => &self.collection_map,
+                base => &self.base_context
             ))
             .unwrap();
         self.write_html_to_file(base_tags_path.join("index.html"), tags_index_rendered_html);
@@ -311,7 +308,7 @@ impl SaaruInstance<'_> {
                 .render(context!(
                     tag => &key,
                     posts => &val,
-                    collections => &self.collection_map,
+                    base => &self.base_context
                 ))
                 .unwrap();
             self.write_html_to_file(
@@ -365,6 +362,13 @@ impl SaaruInstance<'_> {
             self.preprocess_file_data(entry.path());
             log::info!("Finished Processing File {:?}", entry);
         }
+
+        log::info!("Generating DDM Context...");
+        self.base_context = context!(
+        tags => &self.tag_map,
+        collections => &self.collection_map,
+        json => &self.arguments.json_content
+        );
 
         log::info!("Rendering All Files...");
         self.render_all_files();

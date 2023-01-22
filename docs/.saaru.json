@@ -1,10 +1,10 @@
 {
   "metadata": {
     "author": {
-      "name": "Author",
-      "one_line_desc": "hello, world!",
-      "twitter": "twitter.com/username",
-      "github": "github.com/username"
+      "name": "Saaru",
+      "one_line_desc": "Saaru is a static site generator written in Rust!",
+      "twitter": "https://twitter.com/username",
+      "github": "https://github.com/anirudhRowjee/saaru"
     },
     "templates": {
       "default": "post.jinja"

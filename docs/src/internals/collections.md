@@ -32,9 +32,9 @@ collections: # <--- here!
 Just mentioning the collection that each post belongs to allows you to access the collections and their posts in your templates as follows ->
 
 ```jinja
-{% for collection in collections %}
+{% for collection in base.collections %}
   <p> <strong>{{collection}} </strong></p>
-  {% for post in collections[collection] %}
+  {% for post in base.collections[collection] %}
     <p> <a href="{{post.link}}"> {{post.frontmatter.title}}</a> &rarr; {{post.frontmatter.description}}</p>
   {% endfor %}
 {% endfor %}

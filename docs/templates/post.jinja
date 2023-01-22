@@ -1,5 +1,9 @@
 {% extends "base.jinja" %}
 
+{% block title %}
+- {{frontmatter.title}}
+{% endblock %}
+
 {% block main_template_content %}
 <div>
     <h1> {{frontmatter.title}} </h1>

@@ -101,7 +101,7 @@ We'll walk through each file and its use in the static site generator.
     </head>
     <body>
       <main class="container">
-        <h5>Website - {{ json.metadata.author.name }}</h5>
+        <h5>Website - {{ base.json.metadata.author.name }}</h5>
         {{ postcontent | safe }}
       </main>
     </body>
@@ -114,7 +114,7 @@ We'll walk through each file and its use in the static site generator.
   ```html
   <h1>Tags</h1>
   <div>
-    {% for tag in tags %}
+    {% for tag in base.tags %}
     <a class="tag" href="/tags/{{tag}}"> {{tag}}</a>
     {% endfor %}
   </div>
@@ -127,7 +127,7 @@ We'll walk through each file and its use in the static site generator.
   <h1>Pages Tagged {{tag}}</h1>
   <div>
     <ul>
-      {% for post in posts %}
+      {% for post in base.posts %}
       <li><a href="{{post.link}}"> {{post.frontmatter.title}}</a></li>
       {% endfor %}
     </ul>

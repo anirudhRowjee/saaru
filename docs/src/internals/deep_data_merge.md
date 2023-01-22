@@ -80,9 +80,11 @@ let rendered_final_html = rendered_template
 .render(context!(
       frontmatter => input_aug_frontmatter.frontmatter,
       postcontent => html_output,
-      tags => &self.tag_map,
-      collections => &self.collection_map,
-      json => &self.arguments.json_content
+      base => context!(
+        tags => &self.tag_map,
+        collections => &self.collection_map,
+        json => &self.arguments.json_content
+      )
       ))
 .unwrap();
 ```

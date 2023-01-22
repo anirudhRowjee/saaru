@@ -3,15 +3,15 @@
 {% block main_template_content %}
 <h1> Tags </h1>
 <div>
-  {% for tag in tags %}
+  {% for tag in base.tags %}
   <a class="tag" href="/tags/{{tag}}"> {{tag}}</a>
   {% endfor %}
 </div>
 
 <h1> Collections </h1>
-{% for collection in collections %}
+{% for collection in base.collections %}
 <p> <strong>{{collection}} </strong></p>
-{% for post in collections[collection] %}
+{% for post in base.collections[collection] %}
 <p> <a href="{{post.link}}"> {{post.frontmatter.title}}</a> &rarr; {{post.frontmatter.description}}</p>
 {% endfor %}
 {% endfor %}
