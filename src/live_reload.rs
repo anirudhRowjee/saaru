@@ -12,6 +12,7 @@ pub fn live_reload(instance: &mut SaaruInstance) {
 
     // re-render all the files for tags and collections
     let (tx, rx) = mpsc::channel();
+
     let mut watcher = RecommendedWatcher::new(tx, Config::default()).unwrap();
 
     watcher
