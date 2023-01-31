@@ -42,7 +42,7 @@ fn main() {
     let end = time::Instant::now();
     println!("Total Time Taken -> {:?}", end - start);
 
-    //  TODO Implementing Browser-Side Live-Reload
+    //  Implementing Browser-Side Live-Reload
     //
     //  Turns out doing this while still making each thing (live re-render on file change +
     //  web serving) while still keeping functionality to have both work together is going to be
