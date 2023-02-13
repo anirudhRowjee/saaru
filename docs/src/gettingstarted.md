@@ -23,7 +23,9 @@ This tutorial aims to be as self-contained as possible, so you'll find file dump
 
 Saaru is slightly opinionated about how you structure your source.
 
-Use these commands to generate the necessary folder structure -
+Use these commands to generate the necessary folder structure - this is a test of the live reload.
+
+this is nice!
 
 ```bash
 $ mkdir -p my_new_website/{src,static,templates}
@@ -169,3 +171,5 @@ $ serve
 ```
 
 5. Rejoice!
+
+Hello, Adarsh! This is a hello form the live reload. Isn't this nice?

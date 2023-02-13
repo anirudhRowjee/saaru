@@ -14,7 +14,7 @@ use tower_livereload::LiveReloadLayer;
 use walkdir::WalkDir;
 
 use std::borrow::BorrowMut;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -181,6 +181,8 @@ impl SaaruInstance {
         let tag_copy = aug_fm_struct.clone();
         let collection_copy = aug_fm_struct.clone();
 
+        self.frontmatter_map.insert(filename_str, aug_fm_struct);
+
         // Add the file to the tag map
         match &tag_copy.frontmatter.tags {
             Some(tag_list) => {
@@ -198,7 +200,7 @@ impl SaaruInstance {
                 }
             }
             None => {
-                log::warn!("No Tags found in file {:?}", &filename_str);
+                // log::warn!("No Tags found in file {:?}", &filename_str);
             }
         }
 
@@ -219,11 +221,9 @@ impl SaaruInstance {
                 }
             }
             None => {
-                log::warn!("No Collections found in file {:?}", &filename_str);
+                // log::warn!("No Collections found in file {:?}", &filename_str);
             }
         }
-
-        self.frontmatter_map.insert(filename_str, aug_fm_struct);
     }
 
     pub fn convert_markdown_to_html(&self, markdown: &String) -> String {
@@ -410,25 +410,61 @@ impl SaaruInstance {
         // Launch Point for the Saaru Orchestrator
         log::info!("starting the orchestrator");
         let (tx, rx) = unbounded::<SaaruEvent>();
+
+        // Make Separate Watch Dirs for each reloadable segment
         let watch_dir = self.arguments.source_dir.as_path().clone();
+        let static_watch_dir = self.arguments.static_dir.as_path().clone();
+        // let template_watch_dir = self.arguments.template_dir.as_path().clone();
 
         // Initialize Reloader
         let reload_layer = LiveReloadLayer::new();
         let reloader = reload_layer.reloader();
 
         let watcher_sender = tx.clone();
+        let static_watcher_sender = tx.clone();
+        // let template_watcher_sender = tx.clone();
 
         let build_dir = self.arguments.build_dir.clone();
 
         // Setup the watcher (somehow works on a parallel thread?)
-        let mut watcher = RecommendedWatcher::new(
+        let mut content_watcher = RecommendedWatcher::new(
             move |res: Result<Event, Error>| {
                 watcher_sender.send(SaaruEvent::FileChanged(res)).unwrap();
             },
             Config::default(),
         )
         .unwrap();
-        watcher.watch(watch_dir, RecursiveMode::Recursive).unwrap();
+        content_watcher
+            .watch(watch_dir, RecursiveMode::Recursive)
+            .unwrap();
+
+        // Staticfile watcher
+        let mut static_watcher = RecommendedWatcher::new(
+            move |res: Result<Event, Error>| {
+                static_watcher_sender
+                    .send(SaaruEvent::FileChanged(res))
+                    .unwrap();
+            },
+            Config::default(),
+        )
+        .unwrap();
+        static_watcher
+            .watch(static_watch_dir, RecursiveMode::Recursive)
+            .unwrap();
+
+        // // Template watcher
+        // let mut template_watcher = RecommendedWatcher::new(
+        //     move |res: Result<Event, Error>| {
+        //         template_watcher_sender
+        //             .send(SaaruEvent::FileChanged(res))
+        //             .unwrap();
+        //     },
+        //     Config::default(),
+        // )
+        // .unwrap();
+        // template_watcher
+        //     .watch(template_watch_dir, RecursiveMode::Recursive)
+        //     .unwrap();
 
         // Setup the listener (and now, orchestrator)
         let listener_thread = thread::spawn(move || {
@@ -444,22 +480,56 @@ impl SaaruInstance {
                                     // Watch for files getting written again
                                     notify::EventKind::Access(AccessKind::Close(metadata)) => {
                                         log::info!(
-                                            "[LIVERELOAD] File Modified: {:?} -> {:?}",
-                                            event.paths,
-                                            metadata
-                                        );
-                                        log::info!(
                                             "[LIVERELOAD] Re-processing file {:?}",
                                             &event.paths[0]
                                         );
                                         let start = time::Instant::now();
-                                        self.borrow_mut().render_individual_file(&event.paths[0]);
+
+                                        // TODO Check if it's a static file, if so, copy over
+                                        match &event.paths[0].extension().unwrap().to_str().unwrap()
+                                        {
+                                            &"md" => {
+                                                log::info!("Changed Markdown File -> Re-rendering individual file");
+                                                self.borrow_mut()
+                                                    .render_individual_file(&event.paths[0]);
+                                            }
+                                            _ => {
+                                                // Check if the re-render is from the static files
+                                                // or if it's a template
+
+                                                if &event.paths[0]
+                                                    .starts_with(&self.arguments.static_dir)
+                                                    == &true
+                                                {
+                                                    log::info!("Static File Changed. Skipping re-render, recopying static folder");
+                                                    // Copy static folder again
+                                                    self.borrow_mut().copy_static_folder();
+                                                } else {
+                                                    // Something
+                                                    log::info!("Non-Static File Changed. Re-Rendering entire website.");
+
+                                                    // Invalidate the frontmatter
+                                                    log::warn!("Invalidating Collections Map");
+                                                    self.borrow_mut().collection_map =
+                                                        HashMap::new();
+                                                    log::warn!("Invalidating Tag Map");
+                                                    self.borrow_mut().tag_map = HashMap::new();
+                                                    log::warn!("Invalidating Frontmatter Map");
+                                                    self.borrow_mut().frontmatter_map =
+                                                        HashMap::new();
+                                                    log::info!("Triggering Full Site Re-Render");
+                                                    self.borrow_mut().render_pipeline();
+                                                }
+                                            }
+                                        }
+
                                         let end = time::Instant::now();
                                         log::info!(
                                             "File {:?} re-rendered in {:?}",
                                             event.paths[0],
                                             end - start
                                         );
+
                                         // TODO Trigger reload!
                                         sender.send(SaaruEvent::FileReRenderCompleted).unwrap();
                                     }

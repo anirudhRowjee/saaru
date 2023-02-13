@@ -11,13 +11,13 @@ collections:
   - index_pages
 ---
 
-```
+```rust
    ____
   / __/__ ____ _______ __
  _\ \/ _ `/ _ `/ __/ // /
 /___/\_,_/\_,_/_/  \_,_/
 
-A Static Site Generator for Fun and Profit
+A Static Site Generator for fn
 ```
 
 Saaru is a Static Site Generator written in Rust. Given markdown files and jinja templates, it generates a fully static HTML and CSS Site, optionally allowing you to use features such as Tags, Collections, and arbitrary JSON Content injection.
