@@ -1,6 +1,7 @@
 use crate::arguments::SaaruArguments;
 use crate::saaru::SaaruInstance;
 use clap::Parser;
+use log::LevelFilter;
 use std::path::PathBuf;
 use std::time;
 
@@ -29,7 +30,11 @@ struct Arguments {
 }
 
 fn main() {
-    simple_logger::SimpleLogger::new().env().init().unwrap();
+    simple_logger::SimpleLogger::new()
+        .with_level(LevelFilter::Info)
+        .env()
+        .init()
+        .unwrap();
     log::debug!("Initialized Logger");
 
     let commandline_arguments = Arguments::parse();
