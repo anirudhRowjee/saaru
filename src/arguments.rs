@@ -9,10 +9,13 @@ pub struct SaaruArguments {
     pub static_dir: PathBuf,
     pub build_dir: PathBuf,
     pub json_content: Value,
+    // Arguments for Live Reload and so on
+    pub live_reload: bool,
+    pub live_rerender: bool,
 }
 
 impl SaaruArguments {
-    pub fn new(mut base_dir: PathBuf) -> Self {
+    pub fn new(mut base_dir: PathBuf, live_reload: bool, live_rerender: bool) -> Self {
         log::info!("Initializing Arguments");
 
         base_dir = std::fs::canonicalize(base_dir).unwrap();
@@ -63,6 +66,8 @@ impl SaaruArguments {
             static_dir: static_path,
             build_dir: build_path,
             json_content,
+            live_reload,
+            live_rerender,
         }
     }
 }

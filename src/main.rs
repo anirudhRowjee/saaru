@@ -6,8 +6,6 @@ use std::time;
 
 mod arguments;
 mod frontmatter;
-mod live_reload;
-mod orchestrator;
 mod saaru;
 mod utils;
 
@@ -18,8 +16,13 @@ struct Arguments {
     #[arg(short, long)]
     base_path: PathBuf,
 
-    #[arg(short, long)]
+    #[arg(long)]
+    /// Having this on spawns both the web server and the live reloader
     live_reload: bool,
+
+    #[arg(long)]
+    /// Having this on only turns on the live re-render, assuming you have your own web server
+    live_rerender: bool,
 
     #[arg(short, long)]
     serve: bool,
@@ -27,20 +30,30 @@ struct Arguments {
 
 fn main() {
     simple_logger::SimpleLogger::new().env().init().unwrap();
-    log::info!("Initialized Logger");
+    log::debug!("Initialized Logger");
 
     let commandline_arguments = Arguments::parse();
-    log::info!("Command Line Arguments -> {:?}", &commandline_arguments);
+    log::debug!("Command Line Arguments -> {:?}", &commandline_arguments);
+
+    // Check for options
+    if commandline_arguments.live_reload && commandline_arguments.live_rerender {
+        log::error!("Cannot have both Live Reload (--live-reload) AND Live Re-Render (--live-rerender) on at once!");
+        panic!();
+    }
 
     // Expect to see a `.saaru.json` file here in the base path
-    let args = SaaruArguments::new(commandline_arguments.base_path);
+    let args = SaaruArguments::new(
+        commandline_arguments.base_path,
+        commandline_arguments.live_reload,
+        commandline_arguments.live_rerender,
+    );
     let mut instance = SaaruInstance::new(args);
 
     let start = time::Instant::now();
     instance.set_template_environment();
     instance.render_pipeline();
     let end = time::Instant::now();
-    println!("Total Time Taken -> {:?}", end - start);
+    log::info!("Total Time Taken -> {:?}", end - start);
 
     //  Implementing Browser-Side Live-Reload
     //
@@ -88,6 +101,8 @@ fn main() {
     //  [4]   ->  The Orchestrator fires a `SaaruEvent::reload` into the channel. This is to indicate
     //            that the web server should reload.
     //  [4-R] ->  The Web server recieves the `SaaruEvent::reload` and reloads on the browser side.
-    //
-    instance.orchestrator();
+
+    if commandline_arguments.live_reload || commandline_arguments.live_rerender {
+        instance.orchestrator();
+    }
 }

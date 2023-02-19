@@ -4,8 +4,8 @@ use comrak::{markdown_to_html, ComrakOptions};
 use crossbeam::channel::unbounded;
 use gray_matter::{engine::YAML, Matter};
 use minijinja::{context, value::Value, Environment, Source};
-use notify::event::{AccessKind, AccessMode};
-use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::event::AccessKind;
+use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use notify::{Error, Event};
 use tower::layer::util::Stack;
 use tower_http::services::ServeDir;
@@ -14,7 +14,7 @@ use tower_livereload::LiveReloadLayer;
 use walkdir::WalkDir;
 
 use std::borrow::BorrowMut;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -29,7 +29,6 @@ use crate::utils::copy_recursively;
 // This is the main implementation struct for Saaru
 #[derive(Debug)]
 pub enum SaaruEvent {
-    Reload,
     FileChanged(Result<Event, Error>),
     FileReRenderCompleted,
 }
@@ -304,13 +303,13 @@ impl SaaruInstance {
             .get(&path.display().to_string())
             .unwrap()
             .clone();
-        log::info!(
+        log::debug!(
             "[LIVERELOAD] Triggering HTML Conversion for file {:?}",
             path
         );
         let html_content = self.render_file_from_frontmatter(&current_frontmatter);
 
-        log::info!("[LIVERELOAD] Writing to Destination for file {:?}", path);
+        log::debug!("[LIVERELOAD] Writing to Destination for file {:?}", path);
         self.write_html_to_file(PathBuf::from(&current_frontmatter.write_path), html_content);
     }
 
@@ -365,18 +364,18 @@ impl SaaruInstance {
         // Stage 1: Preprocess all files, make all necessary directories
         // Stage 2: Render everything from the preprocessed map
 
-        log::info!("[PREFLIGHT] Validating Input Directory");
+        log::debug!("[PREFLIGHT] Validating Input Directory");
         if !self.validate_source_structure() {
             panic!("The Provided Source Directory is malformed! Please follow the right format.")
         }
 
-        log::info!("[PREFLIGHT] Checking for Build Directory");
+        log::debug!("[PREFLIGHT] Checking for Build Directory");
         match fs::create_dir(&self.arguments.build_dir) {
             Ok(_) => log::info!("Build Directory Created Successfully"),
             Err(_) => log::warn!("Build Directory Already Exists!"),
         };
 
-        log::info!("[LOG] Recursively Preprocessing All Files");
+        log::debug!("[LOG] Recursively Preprocessing All Files");
         for dir in WalkDir::new(&self.arguments.source_dir) {
             let entry = dir.unwrap();
             let local_path = entry.path();
@@ -386,12 +385,12 @@ impl SaaruInstance {
             {
                 continue;
             }
-            log::info!("Processing File {:?}", entry);
+            log::debug!("Processing File {:?}", entry);
             self.preprocess_file_data(entry.path());
-            log::info!("Finished Processing File {:?}", entry);
+            log::debug!("Finished Processing File {:?}", entry);
         }
 
-        log::info!("Generating DDM Context...");
+        log::debug!("Generating DDM Context...");
         self.base_context = context!(
         tags => &self.tag_map,
         collections => &self.collection_map,
@@ -419,6 +418,9 @@ impl SaaruInstance {
         // Initialize Reloader
         let reload_layer = LiveReloadLayer::new();
         let reloader = reload_layer.reloader();
+
+        let live_reload = self.arguments.live_reload.clone();
+        let _live_rerender = self.arguments.live_rerender.clone();
 
         let watcher_sender = tx.clone();
         let static_watcher_sender = tx.clone();
@@ -478,7 +480,7 @@ impl SaaruInstance {
                             Ok(event) => {
                                 match event.kind {
                                     // Watch for files getting written again
-                                    notify::EventKind::Access(AccessKind::Close(metadata)) => {
+                                    notify::EventKind::Access(AccessKind::Close(_metadata)) => {
                                         log::info!(
                                             "[LIVERELOAD] Re-processing file {:?}",
                                             &event.paths[0]
@@ -539,10 +541,6 @@ impl SaaruInstance {
                             Err(e) => log::error!("[LIVERELOAD] {:?}", e),
                         }
                     }
-                    SaaruEvent::Reload => {
-                        // TODO Implement Live Reload for the web server
-                        log::info!("Recieved Reload Event");
-                    }
                     SaaruEvent::FileReRenderCompleted => {
                         // TODO implment the reload signal
                         log::info!("Recieved Re-Render Completion Event");
@@ -552,20 +550,22 @@ impl SaaruInstance {
             }
         });
 
-        let server_thread = thread::spawn(move || {
-            // Initialize Web Server
-            let app = Router::new()
-                .nest_service("/", serve_dir(&build_dir))
-                .layer(reload_layer)
-                .layer(no_cache_layer())
-                .into_make_service();
+        if live_reload {
+            let server_thread = thread::spawn(move || {
+                // Initialize Web Server
+                let app = Router::new()
+                    .nest_service("/", serve_dir(&build_dir))
+                    .layer(reload_layer)
+                    .layer(no_cache_layer())
+                    .into_make_service();
 
-            // start the web server
-            let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 3000);
-            start_server(&addr, app).unwrap();
-        });
+                // start the web server
+                let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 3000);
+                start_server(&addr, app).unwrap();
+            });
 
-        server_thread.join().unwrap();
+            server_thread.join().unwrap();
+        }
         listener_thread.join().unwrap();
     }
 }
@@ -605,7 +605,7 @@ async fn start_server(
     addr: &SocketAddr,
     app: IntoMakeService<Router>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    eprintln!("Serving on: http://{}/", addr);
+    log::info!("Serving on: http://{}/", addr);
     axum::Server::try_bind(&addr)?.serve(app).await?;
     Ok(())
 }
