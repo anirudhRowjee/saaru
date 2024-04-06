@@ -71,15 +71,22 @@ impl SaaruInstance {
 
         let mut options = ComrakOptions::default();
         options.extension.front_matter_delimiter = Some("---".to_owned());
+
+        // Allow raw HTML!
+
         options.extension.table = true;
         options.extension.autolink = true;
         options.extension.tasklist = true;
-        options.extension.tagfilter = true;
+        // options.extension.tagfilter = true;
         options.extension.footnotes = true;
         options.extension.strikethrough = true;
         options.extension.description_lists = true;
         // options.extension.superscript = true;
 
+        // options.extension.tagfilter = true;
+        options.render.unsafe_ = true;
+
+        // TODO see where this can fail
         let default_template = args.json_content["metadata"]["templates"]["default"]
             .as_str()
             .unwrap()
@@ -154,6 +161,7 @@ impl SaaruInstance {
         let mut reader = BufReader::new(file);
         let mut markdown_file_content = String::new();
         reader.read_to_string(&mut markdown_file_content).unwrap();
+
         // Parse the frontmatter
         let parsed_frontmatter: FrontMatter = self
             .frontmatter_parser
@@ -392,9 +400,9 @@ impl SaaruInstance {
 
         log::debug!("Generating DDM Context...");
         self.base_context = context!(
-        tags => &self.tag_map,
-        collections => &self.collection_map,
-        json => &self.arguments.json_content
+            tags => &self.tag_map,
+            collections => &self.collection_map,
+            json => &self.arguments.json_content
         );
 
         log::info!("Rendering All Files...");

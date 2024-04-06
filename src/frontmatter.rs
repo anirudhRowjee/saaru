@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use std::collections::HashMap;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FrontMatter {
@@ -11,7 +11,7 @@ pub struct FrontMatter {
     pub wip: Option<bool>,
     pub template: Option<String>,
     pub link: Option<String>,
-    pub meta: Option<Value>,
+    pub meta: Option<HashMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -10,6 +10,7 @@ mod frontmatter;
 mod saaru;
 mod utils;
 
+/// modal
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Arguments {
@@ -53,12 +54,11 @@ fn main() {
         commandline_arguments.live_rerender,
     );
     let mut instance = SaaruInstance::new(args);
-
-    let start = time::Instant::now();
     instance.set_template_environment();
+    let start = time::Instant::now();
     instance.render_pipeline();
     let end = time::Instant::now();
-    log::info!("Total Time Taken -> {:?}", end - start);
+    println!("Total Time Taken -> {:?}", end - start);
 
     //  Implementing Browser-Side Live-Reload
     //
