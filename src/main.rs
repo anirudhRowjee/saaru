@@ -55,6 +55,7 @@ fn main() {
     );
     let mut instance = SaaruInstance::new(args);
     instance.set_template_environment();
+
     let start = time::Instant::now();
     instance.render_pipeline();
     let end = time::Instant::now();

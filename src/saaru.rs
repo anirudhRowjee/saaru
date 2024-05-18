@@ -3,7 +3,7 @@ use axum::{http, routing::get_service, Router};
 use comrak::{markdown_to_html, ComrakOptions};
 use crossbeam::channel::unbounded;
 use gray_matter::{engine::YAML, Matter};
-use minijinja::{context, value::Value, Environment, Source};
+use minijinja::{context, path_loader, value::Value, Environment};
 use notify::event::AccessKind;
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use notify::{Error, Event};
@@ -49,6 +49,12 @@ pub struct SaaruInstance {
     default_template: String,
     // serialize and generate the default context ahead of time to have faster renders
     base_context: Value,
+
+    // Threadpool thread count
+    parallel_render_threads: usize,
+    // Threads
+    render_channel_producer: crossbeam::channel::Sender<Option<(String, AugmentedFrontMatter)>>,
+    render_channel_consumer: crossbeam::channel::Receiver<Option<(String, AugmentedFrontMatter)>>,
 }
 
 const LOGO: &str = r"
@@ -82,7 +88,6 @@ impl SaaruInstance {
         options.extension.strikethrough = true;
         options.extension.description_lists = true;
         // options.extension.superscript = true;
-
         // options.extension.tagfilter = true;
         options.render.unsafe_ = true;
 
@@ -92,6 +97,8 @@ impl SaaruInstance {
             .unwrap()
             .to_string();
         log::info!("Default Jinja Template -> {:?}", &default_template);
+
+        let (tx, rx) = unbounded::<Option<(String, AugmentedFrontMatter)>>();
 
         SaaruInstance {
             template_env: Environment::new(),
@@ -105,6 +112,10 @@ impl SaaruInstance {
             frontmatter_map: HashMap::new(),
             base_context: context!(),
             default_template,
+            // TODO Read from config later
+            parallel_render_threads: 10,
+            render_channel_producer: tx,
+            render_channel_consumer: rx,
         }
     }
 
@@ -119,7 +130,7 @@ impl SaaruInstance {
     pub fn set_template_environment(&mut self) {
         self.template_env = Environment::new();
         self.template_env
-            .set_source(Source::from_path(&self.arguments.template_dir));
+            .set_loader(path_loader(&self.arguments.template_dir));
         log::info!("Initialized Template Environment");
     }
 
@@ -172,7 +183,7 @@ impl SaaruInstance {
             .unwrap();
 
         let cleaned_markdown = markdown_file_content;
-        let filename_str = filename.clone().display().to_string();
+        let filename_str = filename.display().to_string();
 
         let write_path = self.get_write_path(filename);
         let relative_build_path = self.get_relative_path_from_write_path(&write_path);
@@ -292,14 +303,48 @@ impl SaaruInstance {
     }
 
     pub fn render_all_files(&self) {
-        // Render the entire map
-        for (key, val) in &self.frontmatter_map {
-            // Key => Path
-            // Value => AugmentedFrontMatter
-            log::info!("Rendering file {:?} to Path {:?}", key, val.write_path);
-            let html_content = self.render_file_from_frontmatter(&val);
-            self.write_html_to_file(PathBuf::from(&val.write_path), html_content);
-        }
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                // Render the entire map
+                for (key, val) in &self.frontmatter_map {
+                    // Key => Path
+                    let key = key.clone();
+                    // Value => AugmentedFrontMatter
+                    let value = val.clone();
+
+                    log::info!("Rendering file {:?} to Path {:?}", key, value.write_path);
+                    self.render_channel_producer
+                        .send(Some((key, value)))
+                        .unwrap();
+                }
+                // terminate all threads
+                for _ in 0..self.parallel_render_threads {
+                    self.render_channel_producer.send(None).unwrap();
+                }
+            });
+
+            for x in 0..self.parallel_render_threads {
+                // TODO Figure out clean exit later
+                log::info!("Launching Thread ID {x}");
+                scope.spawn(|| loop {
+                    match self.render_channel_consumer.recv() {
+                        Ok(Some(work)) => {
+                            let key = work.0;
+                            let val = work.1;
+                            log::info!("Rendering file {:?} to Path {:?}", key, val.write_path);
+                            let html_content = self.render_file_from_frontmatter(&val);
+                            self.write_html_to_file(PathBuf::from(&val.write_path), html_content);
+                        }
+                        Ok(None) => {
+                            log::info!("Terminating thread...");
+                            break;
+                        }
+                        Err(e) => panic!("gone bro {}", e),
+                    }
+                });
+                // self.threads.push(join_handle);
+            }
+        });
     }
 
     pub fn render_individual_file(&mut self, path: &PathBuf) {
@@ -366,6 +411,37 @@ impl SaaruInstance {
         copy_recursively(source_path, destination_path).unwrap();
     }
 
+    // pub fn initialize_rendering_threadpool(&mut self) {
+    //     // Spawn the threads
+    //     // Create the channel that will hold the rendering context jobs
+    //     // in each thread, setup the listener on that channel that will perform the rendering in
+    //     // parallel
+    //     std::thread::scope(|scope| {
+    //         for _x in 0..self.parallel_render_threads {
+    //             // TODO Figure out clean exit later
+    //             scope.spawn(|| {
+    //                 println!("Launching thread");
+    //                 loop {
+    //                     match self.render_channel_consumer.recv() {
+    //                         Ok(work) => {
+    //                             let key = work.0;
+    //                             let val = work.1;
+    //                             log::info!("Rendering file {:?} to Path {:?}", key, val.write_path);
+    //                             let html_content = self.render_file_from_frontmatter(&val);
+    //                             self.write_html_to_file(
+    //                                 PathBuf::from(&val.write_path),
+    //                                 html_content,
+    //                             );
+    //                         }
+    //                         Err(e) => panic!("gone bro {}", e),
+    //                     }
+    //                 }
+    //             });
+    //             // self.threads.push(join_handle);
+    //         }
+    //     });
+    // }
+
     pub fn render_pipeline(&mut self) {
         // Full pipeline for rendering again
         // Stage 0: Validate the submitted folder structur
@@ -419,8 +495,8 @@ impl SaaruInstance {
         let (tx, rx) = unbounded::<SaaruEvent>();
 
         // Make Separate Watch Dirs for each reloadable segment
-        let watch_dir = self.arguments.source_dir.as_path().clone();
-        let static_watch_dir = self.arguments.static_dir.as_path().clone();
+        let watch_dir = self.arguments.source_dir.as_path();
+        let static_watch_dir = self.arguments.static_dir.as_path();
         // let template_watch_dir = self.arguments.template_dir.as_path().clone();
 
         // Initialize Reloader
@@ -477,7 +553,7 @@ impl SaaruInstance {
         //     .unwrap();
 
         // Setup the listener (and now, orchestrator)
-        let listener_thread = thread::spawn(move || {
+        let listener_thread = std::thread::spawn(move || {
             let listener = rx.clone();
             let sender = tx.clone();
             // Listen to all the events on the wire
