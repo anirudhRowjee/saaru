@@ -79,7 +79,7 @@ impl SaaruInstance {
         options.extension.front_matter_delimiter = Some("---".to_owned());
 
         // Allow raw HTML!
-
+        options.render.unsafe_ = true;
         options.extension.table = true;
         options.extension.autolink = true;
         options.extension.tasklist = true;
@@ -89,7 +89,6 @@ impl SaaruInstance {
         options.extension.description_lists = true;
         // options.extension.superscript = true;
         // options.extension.tagfilter = true;
-        options.render.unsafe_ = true;
 
         // TODO see where this can fail
         let default_template = args.json_content["metadata"]["templates"]["default"]
