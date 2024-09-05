@@ -4,7 +4,7 @@ use comrak::{markdown_to_html, ComrakOptions};
 use crossbeam::channel::unbounded;
 use gray_matter::{engine::YAML, Matter};
 use minijinja::{context, path_loader, value::Value, Environment};
-use notify::event::AccessKind;
+use notify::event::{AccessKind, ModifyKind};
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use notify::{Error, Event};
 use tower::layer::util::Stack;
@@ -410,37 +410,6 @@ impl SaaruInstance {
         copy_recursively(source_path, destination_path).unwrap();
     }
 
-    // pub fn initialize_rendering_threadpool(&mut self) {
-    //     // Spawn the threads
-    //     // Create the channel that will hold the rendering context jobs
-    //     // in each thread, setup the listener on that channel that will perform the rendering in
-    //     // parallel
-    //     std::thread::scope(|scope| {
-    //         for _x in 0..self.parallel_render_threads {
-    //             // TODO Figure out clean exit later
-    //             scope.spawn(|| {
-    //                 println!("Launching thread");
-    //                 loop {
-    //                     match self.render_channel_consumer.recv() {
-    //                         Ok(work) => {
-    //                             let key = work.0;
-    //                             let val = work.1;
-    //                             log::info!("Rendering file {:?} to Path {:?}", key, val.write_path);
-    //                             let html_content = self.render_file_from_frontmatter(&val);
-    //                             self.write_html_to_file(
-    //                                 PathBuf::from(&val.write_path),
-    //                                 html_content,
-    //                             );
-    //                         }
-    //                         Err(e) => panic!("gone bro {}", e),
-    //                     }
-    //                 }
-    //             });
-    //             // self.threads.push(join_handle);
-    //         }
-    //     });
-    // }
-
     pub fn render_pipeline(&mut self) {
         // Full pipeline for rendering again
         // Stage 0: Validate the submitted folder structur
@@ -537,20 +506,6 @@ impl SaaruInstance {
             .watch(static_watch_dir, RecursiveMode::Recursive)
             .unwrap();
 
-        // // Template watcher
-        // let mut template_watcher = RecommendedWatcher::new(
-        //     move |res: Result<Event, Error>| {
-        //         template_watcher_sender
-        //             .send(SaaruEvent::FileChanged(res))
-        //             .unwrap();
-        //     },
-        //     Config::default(),
-        // )
-        // .unwrap();
-        // template_watcher
-        //     .watch(template_watch_dir, RecursiveMode::Recursive)
-        //     .unwrap();
-
         // Setup the listener (and now, orchestrator)
         let listener_thread = std::thread::spawn(move || {
             let listener = rx.clone();
@@ -558,72 +513,65 @@ impl SaaruInstance {
             // Listen to all the events on the wire
             for x in listener {
                 match x {
-                    SaaruEvent::FileChanged(filechangeevent) => {
-                        match filechangeevent {
-                            Ok(event) => {
-                                match event.kind {
-                                    // Watch for files getting written again
-                                    notify::EventKind::Access(AccessKind::Close(_metadata)) => {
-                                        log::info!(
-                                            "[LIVERELOAD] Re-processing file {:?}",
-                                            &event.paths[0]
-                                        );
-                                        let start = time::Instant::now();
+                    SaaruEvent::FileChanged(filechangeevent) => match filechangeevent {
+                        Ok(event) => {
+                            match event.kind {
+                                notify::EventKind::Modify(ModifyKind::Data(_))
+                                | notify::EventKind::Access(AccessKind::Close(_)) => {
+                                    log::info!(
+                                        "[LIVERELOAD] Re-processing file {:?}",
+                                        &event.paths[0]
+                                    );
+                                    let start = time::Instant::now();
 
-                                        // TODO Check if it's a static file, if so, copy over
-                                        match &event.paths[0].extension().unwrap().to_str().unwrap()
-                                        {
-                                            &"md" => {
-                                                log::info!("Changed Markdown File -> Re-rendering individual file");
-                                                self.borrow_mut()
-                                                    .render_individual_file(&event.paths[0]);
-                                            }
-                                            _ => {
-                                                // Check if the re-render is from the static files
-                                                // or if it's a template
+                                    // TODO Check if it's a static file, if so, copy over
+                                    match &event.paths[0].extension().unwrap().to_str().unwrap() {
+                                        &"md" => {
+                                            log::info!("Changed Markdown File -> Re-rendering individual file");
+                                            self.borrow_mut()
+                                                .render_individual_file(&event.paths[0]);
+                                        }
+                                        _ => {
+                                            // Check if the re-render is from the static files
+                                            // or if it's a template
 
-                                                if &event.paths[0]
-                                                    .starts_with(&self.arguments.static_dir)
-                                                    == &true
-                                                {
-                                                    log::info!("Static File Changed. Skipping re-render, recopying static folder");
-                                                    // Copy static folder again
-                                                    self.borrow_mut().copy_static_folder();
-                                                } else {
-                                                    // Something
-                                                    log::info!("Non-Static File Changed. Re-Rendering entire website.");
+                                            if &event.paths[0]
+                                                .starts_with(&self.arguments.static_dir)
+                                                == &true
+                                            {
+                                                log::info!("Static File Changed. Skipping re-render, recopying static folder");
+                                                // Copy static folder again
+                                                self.borrow_mut().copy_static_folder();
+                                            } else {
+                                                // Something
+                                                log::info!("Non-Static File Changed. Re-Rendering entire website.");
 
-                                                    // Invalidate the frontmatter
-                                                    log::warn!("Invalidating Collections Map");
-                                                    self.borrow_mut().collection_map =
-                                                        HashMap::new();
-                                                    log::warn!("Invalidating Tag Map");
-                                                    self.borrow_mut().tag_map = HashMap::new();
-                                                    log::warn!("Invalidating Frontmatter Map");
-                                                    self.borrow_mut().frontmatter_map =
-                                                        HashMap::new();
-                                                    log::info!("Triggering Full Site Re-Render");
-                                                    self.borrow_mut().render_pipeline();
-                                                }
+                                                // Invalidate the frontmatter
+                                                log::warn!("Invalidating Collections Map");
+                                                self.borrow_mut().collection_map = HashMap::new();
+                                                log::warn!("Invalidating Tag Map");
+                                                self.borrow_mut().tag_map = HashMap::new();
+                                                log::warn!("Invalidating Frontmatter Map");
+                                                self.borrow_mut().frontmatter_map = HashMap::new();
+                                                log::info!("Triggering Full Site Re-Render");
+                                                self.borrow_mut().render_pipeline();
                                             }
                                         }
-
-                                        let end = time::Instant::now();
-                                        log::info!(
-                                            "File {:?} re-rendered in {:?}",
-                                            event.paths[0],
-                                            end - start
-                                        );
-
-                                        // TODO Trigger reload!
-                                        sender.send(SaaruEvent::FileReRenderCompleted).unwrap();
                                     }
-                                    _ => {}
+
+                                    let end = time::Instant::now();
+                                    log::info!(
+                                        "File {:?} re-rendered in {:?}",
+                                        event.paths[0],
+                                        end - start
+                                    );
+                                    sender.send(SaaruEvent::FileReRenderCompleted).unwrap();
                                 }
+                                _ => {}
                             }
-                            Err(e) => log::error!("[LIVERELOAD] {:?}", e),
                         }
-                    }
+                        Err(e) => log::error!("[LIVERELOAD] {:?}", e),
+                    },
                     SaaruEvent::FileReRenderCompleted => {
                         // TODO implment the reload signal
                         log::info!("Recieved Re-Render Completion Event");
