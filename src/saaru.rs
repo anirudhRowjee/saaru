@@ -7,6 +7,7 @@ use minijinja::{context, path_loader, value::Value, Environment};
 use notify::event::{AccessKind, ModifyKind};
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use notify::{Error, Event};
+use rss::validation::Validate;
 use tower::layer::util::Stack;
 use tower_http::services::ServeDir;
 use tower_http::set_header::SetResponseHeaderLayer;
@@ -19,6 +20,7 @@ use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time;
 
@@ -55,6 +57,9 @@ pub struct SaaruInstance {
     // Threads
     render_channel_producer: crossbeam::channel::Sender<Option<(String, AugmentedFrontMatter)>>,
     render_channel_consumer: crossbeam::channel::Receiver<Option<(String, AugmentedFrontMatter)>>,
+
+    // RSS Channel
+    rss_base: Arc<Mutex<Option<rss::Channel>>>,
 }
 
 const LOGO: &str = r"
@@ -99,6 +104,18 @@ impl SaaruInstance {
 
         let (tx, rx) = unbounded::<Option<(String, AugmentedFrontMatter)>>();
 
+        let mut rchan: Option<rss::Channel> = None;
+        if args.rss {
+            let args_json = &args.json_content.clone()["metadata"]["author"];
+            rchan = Some(
+                rss::ChannelBuilder::default()
+                    .title(args_json["name"].to_string())
+                    .link("https://rowjee.com/feed.xml".to_string())
+                    .description(args_json["description"].to_string())
+                    .build(),
+            );
+        }
+
         SaaruInstance {
             template_env: Environment::new(),
             frontmatter_parser: Matter::new(),
@@ -115,6 +132,7 @@ impl SaaruInstance {
             parallel_render_threads: 10,
             render_channel_producer: tx,
             render_channel_consumer: rx,
+            rss_base: Arc::new(Mutex::new(rchan)),
         }
     }
 
@@ -273,6 +291,22 @@ impl SaaruInstance {
             ))
             .unwrap();
 
+        // If RSS is enabled, write to the channel
+        // Locking on the hot path. I know, I know.
+        {
+            let mut rsschan = self.rss_base.lock().unwrap();
+            if let Some(chan) = rsschan.as_mut() {
+                // TODO parse publication date from frontmatter, use `chrono` and generate IETF RFC 2822 timestamp to pass into RSS Generator
+                let item = rss::ItemBuilder::default()
+                    .title(input_aug_frontmatter.frontmatter.title.clone())
+                    .description(input_aug_frontmatter.frontmatter.description.clone())
+                    .content(html_output.clone())
+                    .author(self.arguments.json_content["metadata"]["name"].to_string())
+                    .build();
+                chan.items.push(item);
+            }
+        }
+
         // Copy just for fun
         rendered_final_html
     }
@@ -410,6 +444,15 @@ impl SaaruInstance {
         copy_recursively(source_path, destination_path).unwrap();
     }
 
+    fn render_rss_file(&self) {
+        let outpath = self.arguments.build_dir.join("feed.xml");
+        let rss_chan = self.rss_base.lock().unwrap().clone().unwrap();
+        rss_chan.validate().unwrap();
+        // create a file writer
+        let outfile = File::create(outpath).unwrap();
+        rss_chan.write_to(outfile).unwrap();
+    }
+
     pub fn render_pipeline(&mut self) {
         // Full pipeline for rendering again
         // Stage 0: Validate the submitted folder structur
@@ -455,6 +498,12 @@ impl SaaruInstance {
         self.render_tags_pages();
         log::info!("Copying the static folder... ");
         self.copy_static_folder();
+
+        // Render the RSS File
+        if self.arguments.rss {
+            log::info!("Rendering rss file...");
+            self.render_rss_file();
+        }
     }
 
     pub fn orchestrator(mut self) {

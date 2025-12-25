@@ -26,6 +26,10 @@ struct Arguments {
     /// Having this on only turns on the live re-render, assuming you have your own web server
     live_rerender: bool,
 
+    #[arg(long)]
+    /// This enables RSS Feed generation
+    rss: bool,
+
     #[arg(short, long)]
     serve: bool,
 }
@@ -52,6 +56,7 @@ fn main() {
         commandline_arguments.base_path,
         commandline_arguments.live_reload,
         commandline_arguments.live_rerender,
+        commandline_arguments.rss,
     );
     let mut instance = SaaruInstance::new(args);
     instance.set_template_environment();

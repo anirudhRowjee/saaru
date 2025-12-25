@@ -7,27 +7,38 @@ edition = "2021"
 
 [dependencies]
 gray_matter = "0.2.4"
-minijinja = {version = "1.0.20", features = ["builtins", "loader"]}
-pulldown-cmark = {version = "0.9.2", features = ["default"]}
-serde = { version = "1.0.150", features = ["derive"]}
+minijinja = { version = "1.0.20", features = ["builtins", "loader"] }
+pulldown-cmark = { version = "0.9.2", features = ["default"] }
+serde = { version = "1.0.150", features = ["derive"] }
 walkdir = "2"
 log = "0.4.17"
 simple_logger = "4.0.0"
-clap = { version = "4.0.32", features = ["derive"]}
+clap = { version = "4.0.32", features = ["derive"] }
 comrak = "0.15.0"
 notify = { version = "5.0.0", features = ["serde"] }
 serde_json = "1.0.91"
-crossbeam = {version = "0.8.2", features = ["default"]}
+crossbeam = { version = "0.8.2", features = ["default"] }
 # this is for the server
-tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread", "sync", "rt"] }
+tokio = { version = "1.37.0", features = [
+    "macros",
+    "rt-multi-thread",
+    "sync",
+    "rt",
+] }
 tower = "0.4.13"
 tower-http = { version = "0.3.5", features = ["fs", "set-header"] }
 tower-livereload = "0.7.2"
 axum = "0.6.3"
+rss = { version = "2.0.12", features = [
+    "default",
+    "atom",
+    "url",
+    "validation",
+] }
 
 [profile.release]
-opt-level = 'z'     # Optimize for size
-lto = true          # Enable link-time optimization
-codegen-units = 1   # Reduce number of codegen units to increase optimizations
-panic = 'abort'     # Abort on panic
-strip = true        # Strip symbols from binary*
+opt-level = 'z'   # Optimize for size
+lto = true        # Enable link-time optimization
+codegen-units = 1 # Reduce number of codegen units to increase optimizations
+panic = 'abort'   # Abort on panic
+strip = true      # Strip symbols from binary*
