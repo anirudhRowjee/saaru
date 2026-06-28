@@ -111,7 +111,7 @@ impl SaaruInstance {
                 rss::ChannelBuilder::default()
                     .title(args_json["name"].to_string())
                     .link("https://rowjee.com/feed.xml".to_string())
-                    .description(args_json["description"].to_string())
+                    .description(args_json["one_line_desc"].to_string())
                     .build(),
             );
         }
@@ -294,16 +294,44 @@ impl SaaruInstance {
         // If RSS is enabled, write to the channel
         // Locking on the hot path. I know, I know.
         {
-            let mut rsschan = self.rss_base.lock().unwrap();
-            if let Some(chan) = rsschan.as_mut() {
-                // TODO parse publication date from frontmatter, use `chrono` and generate IETF RFC 2822 timestamp to pass into RSS Generator
-                let item = rss::ItemBuilder::default()
-                    .title(input_aug_frontmatter.frontmatter.title.clone())
-                    .description(input_aug_frontmatter.frontmatter.description.clone())
-                    .content(html_output.clone())
-                    .author(self.arguments.json_content["metadata"]["name"].to_string())
-                    .build();
-                chan.items.push(item);
+            let needs_rss_rendering: bool = {
+                match &input_aug_frontmatter.frontmatter.tags {
+                    Some(tags) => tags.contains(&"publish_to_rss".to_string()) == true,
+                    None => false,
+                }
+            };
+            if needs_rss_rendering {
+                let final_url = format!(
+                    "{}{}",
+                    self.arguments.json_content["metadata"]["site_base_url"]
+                        .as_str()
+                        .unwrap(),
+                    input_aug_frontmatter.relative_build_path
+                );
+
+                let pub_date_rfc_2288: String = match &input_aug_frontmatter.frontmatter.date {
+                    Some(date) => {
+                        let native_date = chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d")
+                            .expect("failed to parse date");
+                        let prep_date = native_date.and_hms_opt(9, 0, 0).unwrap().and_utc();
+                        prep_date.to_rfc2822()
+                    }
+                    None => String::new(),
+                };
+
+                let mut rsschan = self.rss_base.lock().unwrap();
+                if let Some(chan) = rsschan.as_mut() {
+                    // TODO parse publication date from frontmatter, use `chrono` and generate IETF RFC 2822 timestamp to pass into RSS Generator
+                    let item = rss::ItemBuilder::default()
+                        .title(input_aug_frontmatter.frontmatter.title.clone())
+                        .description(input_aug_frontmatter.frontmatter.description.clone())
+                        .content(html_output.clone())
+                        .author(self.arguments.json_content["metadata"]["name"].to_string())
+                        .link(final_url)
+                        .pub_date(pub_date_rfc_2288)
+                        .build();
+                    chan.items.push(item);
+                }
             }
         }
 

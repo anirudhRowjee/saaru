@@ -1,3 +1,4 @@
+use core::panic;
 use serde_json::Value;
 use std::{fs::read_to_string, path::PathBuf};
 
@@ -59,6 +60,30 @@ impl SaaruArguments {
         };
         let json_content = raw_json_content;
         log::info!("Finished Reading JSON Content -> {:?}", json_content);
+
+        let mut break_because_rss_fail = false;
+        // Validate that if RSS is turned on, the `site_base_url` is present
+        if rss {
+            match json_content.get("metadata") {
+                Some(val) => match val.get("site_base_url") {
+                    Some(url) => log::info!("Confirmed RSS base URL at {}", url),
+                    None => {
+                        break_because_rss_fail = true;
+                        log::error!(
+                            "Couldn't find site_base_url in metadata for rss feed generation"
+                        )
+                    }
+                },
+                None => {
+                    break_because_rss_fail = true;
+                    log::error!("Couldn't find site_base_url in metadata for rss feed generation")
+                }
+            }
+        }
+
+        if break_because_rss_fail {
+            panic!("RSS Config broken - see error messages above")
+        }
 
         SaaruArguments {
             base_dir,
